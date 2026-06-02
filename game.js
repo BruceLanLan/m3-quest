@@ -77,6 +77,7 @@ const VS = `
   varying float v_alpha;
   varying vec3 v_tint;
   varying float v_glow;
+  varying float v_ndcY;
   void main() {
     gl_Position = vec4(a_pos, 0.0, 1.0);
     v_uv = a_uv;
@@ -85,6 +86,7 @@ const VS = `
     v_alpha = a_alpha;
     v_tint = a_tint;
     v_glow = a_glow;
+    v_ndcY = a_pos.y;  // pass through NDC y for atmospheric haze
   }
 `;
 
@@ -96,6 +98,7 @@ const FS = `
   varying float v_alpha;
   varying vec3 v_tint;
   varying float v_glow;
+  varying float v_ndcY;
 
   uniform sampler2D u_tex;
   uniform float u_time;
@@ -120,6 +123,30 @@ const FS = `
     // distance fog
     float fogDist = clamp(u_fog, 0.0, 1.0);
     c.rgb = mix(c.rgb, u_fogColor, fogDist);
+
+    // atmospheric haze: screen-bottom (nearer camera) is slightly warmer,
+    // screen-top (farther) is slightly cooler / desaturated. Painterly Octopath feel.
+    float vHaze = v_ndcY;  // -1 = bottom, +1 = top
+    if (v_layer < 0.5) {  // ground tiles only
+      // top of screen: blend a touch more toward fog (deeper, cooler)
+      // bottom: keep warmer
+      float topFog = smoothstep(0.0, 0.7, vHaze) * 0.15;
+      c.rgb = mix(c.rgb, u_fogColor * 1.1, topFog);
+      // bottom 30%: warm it up a touch
+      float bottomWarm = smoothstep(0.0, -0.5, vHaze) * 0.06;
+      c.rgb = c.rgb * (vec3(1.0) + vec3(0.04, 0.02, 0.0)) * (1.0 + bottomWarm);
+    }
+
+    // AO (ambient occlusion) at tile edges — vertices at the corners are darker
+    // (Octopath's signature "deep grout" look)
+    if (v_layer < 0.5) {
+      // v_uv goes (0,0) to (1,1) per tile; corners (uv near 0 or 1) get darker
+      float ax = abs(v_uv.x - 0.5) * 2.0;  // 0 at center, 1 at edges
+      float ay = abs(v_uv.y - 0.5) * 2.0;
+      float edge = max(ax, ay);
+      float ao = 1.0 - edge * 0.18;  // up to 18% darker at edges
+      c.rgb *= ao;
+    }
 
     // water shimmer (animated highlight on layer 2)
     if (v_layer > 1.5 && v_layer < 2.5) {
@@ -1607,9 +1634,28 @@ function timeOfDay(t) {
 }
 
 function dayColor(t) {
-  // returns {sunCol, ambCol, fogCol, sunLevel, skyHex}
+  // returns {sunCol, ambCol, fogCol, sunLevel, skyHex, sunDir: {x, y}}
+  // sunDir is the offset in screen pixels for shadows (sun-from direction is -sunDir).
+  // At dawn (6am) sun is east → shadow falls west (sx negative).
+  // At noon sun is overhead → shadow short.
+  // At dusk (6pm) sun is west → shadow falls east (sx positive).
   const tod = timeOfDay(t);
-  let sunCol, ambCol, fogCol, sunLevel, skyHex;
+  let sunCol, ambCol, fogCol, sunLevel, skyHex, sunDir;
+  // compute sun direction from time of day (in minutes since midnight)
+  // sun rises at 6h (360min), peaks at 12h (720min), sets at 18h (1080min)
+  const hour = (t / 60) % 24;
+  // sun's azimuth angle: 0=overhead, PI/2=east, -PI/2=west, PI=underground
+  const sunAng = (hour - 12) / 12 * Math.PI / 2;  // -PI/2 at 6am, 0 at noon, +PI/2 at 6pm
+  // sun height: 0 at 6am/18pm, 1 at noon
+  const sunHeight = Math.max(0, Math.cos(sunAng));
+  // sun direction (shadow offset, opposite to sun-to-ground)
+  // when sun is east (6am): shadow goes west → sunDir = (-1, +0.5)
+  // when sun is west (6pm): shadow goes east → sunDir = (+1, +0.5)
+  // shadow length inversely related to sunHeight
+  const shadowLen = 0.5 + 1.5 * (1 - sunHeight);  // 0.5 at noon, 2.0 at horizon
+  const sunDirX = Math.sin(sunAng) * shadowLen * 6;  // east-west
+  const sunDirY = shadowLen * 4;  // always a bit south (downward in screen)
+  sunDir = { x: sunDirX, y: sunDirY };
   if (tod === 'dawn') {
     const f = (t - 240) / 60; // 0..1 across dawn (240 to 300 → wait we use 0-300)
     sunCol = lerp3([0.95, 0.6, 0.5], [1.0, 0.95, 0.8], clamp(f, 0, 1));
@@ -1637,7 +1683,7 @@ function dayColor(t) {
     sunLevel = 0.25;
     skyHex = PAL.skyNight;
   }
-  return {sunCol, ambCol, fogCol, sunLevel, skyHex};
+  return {sunCol, ambCol, fogCol, sunLevel, skyHex, sunDir};
 }
 
 function lerp3(a, b, f) { return [a[0]+(b[0]-a[0])*f, a[1]+(b[1]-a[1])*f, a[2]+(b[2]-a[2])*f]; }
@@ -3642,60 +3688,127 @@ function render() {
   }
   gl.uniform1f(uFog, 0);
 
-  // 3. scenery (trees, rocks, etc) — layer 1 with shadows
+  // 3. scenery (trees, rocks, etc) — layer 1 with shadows + wind sway
+  // Wind: a global phase that loops every few seconds; per-tree phase offset for variation.
+  const windT = performance.now() * 0.001;
+  // Sun direction in screen pixels (for cast shadows)
+  const sunDx = dc.sunDir.x, sunDy = dc.sunDir.y;
   for (let y=minWy; y<=maxWy; y++) {
     for (let x=minWx; x<=maxWx; x++) {
       const s = world.scenery[y][x];
       if (!s) continue;
       const cell = cells[s];
       if (!cell) continue;
-      // shadow first
+      // wind: only trees sway, rocks don't
+      let windDx = 0, windDy = 0;
+      if (s.startsWith('tree')) {
+        const phase = (x * 1.7 + y * 2.3 + s.length);
+        windDx = Math.sin(windT * 1.6 + phase) * 1.2;  // horizontal sway
+        windDy = Math.cos(windT * 2.4 + phase * 0.7) * 0.6;  // tiny vertical bob
+      }
+      // shadow first — also swayed a bit (shadow moves less than tree top)
       if (s.startsWith('tree') || s === 'rock' || s === 'rock-gold') {
         const shadowCell = cells['shadow'];
         const p = project(x + 0.5, y + 0.5, 0);
         const shOff = 6;
-        drawSprite(shadowCell, p.sx - 16 * p.scale, p.sy - 4 * p.scale + shOff, 32 * p.scale, 16 * p.scale, 0, 0.5, 0.4);
+        // tree shadow also tilts in the wind direction (very subtle)
+        // AND in the sun direction (longer shadows at low sun)
+        const shDx = (s.startsWith('tree') ? windDx * 0.5 : 0) + dc.sunDir.x;
+        const shDy = dc.sunDir.y;
+        drawSprite(shadowCell,
+          p.sx - 16 * p.scale + shDx,
+          p.sy - 4 * p.scale + shOff + shDy,
+          32 * p.scale, 16 * p.scale, 0, 0.5, 0.4);
       }
       // lit (1.0 for normal, dim for night)
       const lit = dc.sunLevel;
       const elev = world.elevation[y][x] || 0;
-      drawTileAt(cell, x + 0.5, y + 0.5, TILE, 1, lit, 0, elev * ELEVATION_PX);
+      // Tree gets drawn with the wind offset. The tree sprite is 32x32 covering
+      // the trunk and crown. The wind shift will look like the crown swinging
+      // while the trunk (anchored at the bottom) stays put.
+      const pTree = project(x + 0.5, y + 0.5, 0);
+      const sz = TILE;
+      drawSprite(cell,
+        pTree.sx - sz/2 * p.scale + windDx * p.scale,
+        pTree.sy - sz/2 * p.scale + windDy * p.scale - elev * ELEVATION_PX * p.scale,
+        sz * p.scale, sz * p.scale, 1, lit, 1, 1, 1, 1, 0);
     }
   }
 
-  // 3b. decorations (flowers, tall grass) — layer 1
+  // 3b. decorations (flowers, tall grass) — layer 1, with wind sway
   for (let y=minWy; y<=maxWy; y++) {
     for (let x=minWx; x<=maxWx; x++) {
       const d = world.decorations[y][x];
       if (!d) continue;
       const cell = cells[d];
       if (!cell) continue;
+      // flowers and grass sway with the wind (smaller amplitude than trees)
+      let dWindDx = 0;
+      if (d.startsWith('flower') || d === 'tall-grass') {
+        const phase = (x * 2.1 + y * 1.3 + d.length * 0.7);
+        dWindDx = Math.sin(windT * 1.9 + phase) * 0.7;
+      }
       const elev = world.elevation[y][x] || 0;
-      drawTileAt(cell, x + 0.5, y + 0.5, TILE, 1, dc.sunLevel, 0, elev * ELEVATION_PX);
+      const pD = project(x + 0.5, y + 0.5, 0);
+      const sz = TILE;
+      drawSprite(cell,
+        pD.sx - sz/2 * p.scale + dWindDx * p.scale,
+        pD.sy - sz/2 * p.scale - elev * ELEVATION_PX * p.scale,
+        sz * p.scale, sz * p.scale, 1, dc.sunLevel, 1, 1, 1, 1, 0);
     }
   }
 
-  // 3c. buildings (with shadows) — layer 3 (above ground but below chars)
+  // 3c. buildings (3D-extruded with sun-angle shadows) — layer 3
+  // Sun direction in screen space (projected): for HD-2D, sun comes from upper-left
+  // so shadows fall to lower-right. shadowDir = (1, 1) in (sx, sy) units.
+  const sunSx = 6, sunSy = 4;  // shadow offset in pixels (low sun = long shadow)
   for (let y=minWy; y<=maxWy; y++) {
     for (let x=minWx; x<=maxWx; x++) {
       const b = world.buildings[y][x];
       if (!b) continue;
       const cell = cells[b];
       if (!cell) continue;
-      // shadow under building
-      const shadowCell = cells['shadow'];
-      const p = project(x + 0.5, y + 0.5, 0);
-      drawSprite(shadowCell, p.sx - 18 * p.scale, p.sy - 4 * p.scale + 6, 36 * p.scale, 16 * p.scale, 0, 0.5, 0.5);
-      // building sprite, drawn tall (with wz height)
-      const lit = dc.sunLevel;
-      // GLOW for lit windows
-      const glow = (b === 'house-mayor' || b === 'shop' || b === 'nooks' || b === 'bank' || b === 'pawn' || b === 'museum' || b === 'tower' || b === 'kks' || b === 'resident') ? 1 : 0;
-      // instead of drawTileAt, manually position tall
-      const sz = TILE;
-      const sx = p.sx - sz/2 * p.scale;
       const elev = world.elevation[y][x] || 0;
-      const sy = p.sy - sz/2 * p.scale - 16 * p.scale - elev * ELEVATION_PX * p.scale;  // shift up for "tall" effect + elevation
-      drawSprite(cell, sx, sy, sz * p.scale, sz * p.scale, 3, lit, 1, 1, 1, 1, glow);
+      // Ground-level base: project at the actual building base (slight elevation)
+      const pBase = project(x + 0.5, y + 0.5, 0);
+      // Top-level: project at the top of the building (high wz)
+      const extrude = 48;  // building height in screen pixels
+      const pTop = project(x + 0.5, y + 0.5, extrude);
+      // SIZES:
+      const sz = TILE;
+      const lit = dc.sunLevel;
+      const glow = (b === 'house-mayor' || b === 'shop' || b === 'nooks' || b === 'bank' || b === 'pawn' || b === 'museum' || b === 'tower' || b === 'kks' || b === 'resident') ? 1 : 0;
+
+      // 1. Cast shadow on ground (skewed to the south-east for sun-from-north-west)
+      const shadowCell = cells['shadow'];
+      if (shadowCell) {
+        // Skew shadow: a parallelogram. Use the wall face for shape.
+        // We draw a stretched sprite, displaced toward south-east, semi-transparent.
+        drawSprite(shadowCell,
+          pBase.sx - sz/2 * p.scale + sunSx,
+          pBase.sy - sz/2 * p.scale + sunSy + 8,
+          sz * p.scale * 1.4, sz * p.scale * 0.6,
+          3, 0.35, 0.3);  // dark, low alpha
+      }
+
+      // 2. SIDE FACE (the wall facing the camera) — tinted darker for depth
+      // We reuse the building cell but draw it stretched vertically, top-aligned to pTop
+      // AND slightly offset so the wall shows behind the roof
+      const wallTint = 0.78;  // side face slightly darker (no direct sun)
+      drawSprite(cell,
+        pBase.sx - sz/2 * p.scale,
+        pBase.sy - sz/2 * p.scale - extrude * p.scale - elev * ELEVATION_PX * p.scale,
+        sz * p.scale, sz * p.scale,
+        3, lit, wallTint, 0.92, 0.92, 1.0, glow);
+
+      // 3. ROOF OVERHANG — a thin lit band on top of the building, brighter
+      // (we use the same sprite, with a small upward offset to create "lip")
+      const roofOff = 4;
+      drawSprite(cell,
+        pBase.sx - sz/2 * p.scale - roofOff * p.scale,
+        pBase.sy - sz/2 * p.scale - extrude * p.scale - roofOff * p.scale - elev * ELEVATION_PX * p.scale,
+        sz * p.scale, sz * p.scale,
+        3, lit, 1.05, 1.05, 1.05, 1.0, glow);
     }
   }
 

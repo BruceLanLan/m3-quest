@@ -4,6 +4,35 @@
 
 ---
 
+## v4.2 — 2026-06-02
+
+**HD-2D Painterly Pass（视觉重做）**
+
+**New:**
+- 建筑 3D 凸出：每个建筑渲染 2 次（暗色墙身 + 亮色屋顶凸出 4px），阴影跟随太阳方向
+- 树风动：所有树按 sin 周期摆动 ±1.2px，阴影跟随半幅
+- 花/草丛风动：±0.7px 摆动
+- 太阳方向阴影：`dayColor()` 返回 `sunDir`，阴影长度与时段相关
+- 大气 haze shader：屏幕顶部更冷（mix 进 fogColor），底部微暖
+- Tile 边缘 AO：地面 tile 边角最多暗 18%，模拟 Octopath 的 grout 效果
+- v_ndcY varying：把 NDC y 传到 fragment shader 用
+
+**Files changed:** game.js +110 / -10
+
+---
+
+## v4.1.2 — 2026-06-02
+
+**UX 修复**
+
+**Fixed:**
+- loading 一直转：boot 自动检测存档 + 按 Enter/点击屏幕直接进游戏
+- v4.0 → v4.1 缓存：HTML 加 `?v=4.1.2` query string + no-cache meta
+
+**Files changed:** index.html +6
+
+---
+
 ## v4.1 — 2026-06-02
 
 **Island Designer（地形编辑）**
