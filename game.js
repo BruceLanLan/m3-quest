@@ -3792,23 +3792,33 @@ function render() {
       }
 
       // 2. SIDE FACE (the wall facing the camera) — tinted darker for depth
-      // We reuse the building cell but draw it stretched vertically, top-aligned to pTop
-      // AND slightly offset so the wall shows behind the roof
-      const wallTint = 0.78;  // side face slightly darker (no direct sun)
+      // The wall quad is drawn with a vertical stretch and an offset to look like
+      // a 3D extrusion. The wall face shows below the roof overhang, giving the
+      // building visible "depth" in axonometric view.
+      const wallTint = 0.65;  // side face quite a bit darker (no direct sun on side)
       drawSprite(cell,
         pBase.sx - sz/2 * p.scale,
         pBase.sy - sz/2 * p.scale - extrude * p.scale - elev * ELEVATION_PX * p.scale,
         sz * p.scale, sz * p.scale,
-        3, lit, wallTint, 0.92, 0.92, 1.0, glow);
+        3, lit, wallTint, 0.85, 0.95, 1.0, glow);
 
       // 3. ROOF OVERHANG — a thin lit band on top of the building, brighter
-      // (we use the same sprite, with a small upward offset to create "lip")
-      const roofOff = 4;
+      // The roof is drawn ABOVE the wall (offset upward) so the wall can show below
+      const roofOff = 12;  // bigger offset = more visible 3D step
       drawSprite(cell,
         pBase.sx - sz/2 * p.scale - roofOff * p.scale,
         pBase.sy - sz/2 * p.scale - extrude * p.scale - roofOff * p.scale - elev * ELEVATION_PX * p.scale,
         sz * p.scale, sz * p.scale,
-        3, lit, 1.05, 1.05, 1.05, 1.0, glow);
+        3, lit, 1.15, 1.10, 1.05, 1.0, glow);
+
+      // 3b. ROOF EAST EDGE — a thin lit strip showing the roof's east face
+      // (small parallelogram suggesting the roof has thickness)
+      const roofEdgeW = 4;
+      drawSprite(cell,
+        pBase.sx - sz/2 * p.scale - roofOff * p.scale + sz * p.scale - roofEdgeW,
+        pBase.sy - sz/2 * p.scale - extrude * p.scale - roofOff * p.scale - elev * ELEVATION_PX * p.scale,
+        roofEdgeW * p.scale, sz * p.scale,
+        3, lit, 0.95, 0.92, 0.88, 1.0, 0);  // slightly cooler (east gets less sun)
     }
   }
 
@@ -3905,6 +3915,13 @@ function render() {
     const wx = cam.x + (Math.random() - 0.5) * 30;
     const wy = cam.y + (Math.random() - 0.5) * 20;
     spawnParticle('leaf', wx, wy, {vy: 0.2, vx: (Math.random()-0.5)*0.5, life: 80});
+  }
+  // 5c. dust motes (volumetric atmosphere — visible sun beams, sunny only)
+  // These are small bright dots that drift slowly, suggesting air with light
+  if (timeOfDay(time.minutes) === 'day' && time.weather === 'sunny' && Math.random() < 0.4) {
+    const wx = cam.x + (Math.random() - 0.5) * 30;
+    const wy = cam.y + (Math.random() - 0.5) * 20;
+    spawnParticle('dust', wx, wy, {vy: -0.1, vx: (Math.random()-0.5)*0.15, life: 200});
   }
   // 6. flush
   gl.bufferSubData(gl.ARRAY_BUFFER, 0, vdata.subarray(0, vHead * FLOATS_PER_VERT));
