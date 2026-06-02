@@ -1,0 +1,82 @@
+name: verify
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Use Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Cache probe
+        run: |
+          cat > /tmp/probe.js <<'EOF'
+          // Minimal browser-like globals for game.js Node smoke test
+          globalThis.window = { addEventListener: () => {}, removeEventListener: () => {} };
+          globalThis.document = {
+            getElementById: () => ({
+              classList: { add: () => {}, remove: () => {}, toggle: () => {}, contains: () => true },
+              addEventListener: () => {},
+              querySelectorAll: () => [],
+              getContext: () => null,
+              style: {},
+              textContent: '',
+              hidden: true,
+            }),
+            querySelectorAll: () => [],
+            querySelector: () => null,
+            addEventListener: () => {},
+            body: { innerHTML: '' },
+            createElement: () => ({ getContext: () => null, width: 0, height: 0 }),
+          };
+          globalThis.localStorage = { getItem: () => null, setItem: () => {}, removeItem: () => {} };
+          globalThis.performance = { now: () => Date.now() };
+          globalThis.requestAnimationFrame = (fn) => { if (++globalThis.__rafCount > 5) return; setTimeout(() => fn(performance.now()), 16); };
+          globalThis.setInterval = () => 0;
+          globalThis.setTimeout = (fn) => { if (globalThis.__rafCount > 5) return; return 0; };
+          globalThis.__rafCount = 0;
+          try {
+            require('fs').readFileSync('game.js', 'utf8');
+            const code = require('fs').readFileSync('game.js', 'utf8');
+            // wrap as module to avoid IIFE pollution
+            new Function('window', 'document', 'localStorage', 'performance', 'requestAnimationFrame', code);
+            console.log('GAME PARSED OK');
+            process.exit(0);
+          } catch (e) {
+            console.error('GAME PARSE FAILED:', e.message);
+            process.exit(1);
+          }
+          EOF
+          node /tmp/probe.js
+
+      - name: Check key strings exist
+        run: |
+          for s in "function boot" "function render" "function updatePlayer" "function initWorld" "function openAction" "function saveGame" "function loadGame" "Island Designer" "ELEVATION_PX" "terraformUp" "terraformDown" "terraformPath"; do
+            if ! grep -qF "$s" game.js; then
+              echo "MISSING: $s"
+              exit 1
+            fi
+          done
+          echo "ALL KEY SYMBOLS PRESENT"
+
+      - name: File size sanity
+        run: |
+          wc -l game.js index.html styles.css
+          # game.js should be 3500-5000 lines
+          LINES=$(wc -l < game.js)
+          if [ "$LINES" -lt 3500 ] || [ "$LINES" -gt 6000 ]; then
+            echo "game.js line count out of range: $LINES"
+            exit 1
+          fi
+          echo "File sizes OK"

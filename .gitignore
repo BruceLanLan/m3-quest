@@ -1,0 +1,35 @@
+# OS / editor noise
+.DS_Store
+*.swp
+*.swo
+*~
+.vscode/
+.idea/
+
+# Local saves (don't leak gameplay state to public repo)
+saves/
+*.save
+*.save.json
+
+# Node / build artefacts (not used yet, but future-proof)
+node_modules/
+dist/
+build/
+
+# Logs
+*.log
+npm-debug.log*
+
+# Environment / secrets (we have none today, but guard for the future)
+.env
+.env.local
+.env.*.local
+*.pem
+*.key
+secrets/
+
+# Backup directories of prior versions (kept locally for reference, not shipped)
+.bak/
+.bak-v3/
+.bak-*/
+

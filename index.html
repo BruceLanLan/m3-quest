@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>M3 Crossing · HD-2D v4 — Octopath-style Animal Crossing</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div id="loading">
+  <div class="load-inner">
+    <canvas id="boot-canvas" width="320" height="180"></canvas>
+    <div class="load-spinner"></div>
+    <h1>M3 Crossing</h1>
+    <p>HD-2D · Octopath Engine · Switch-AC Scope</p>
+    <p class="muted" id="load-tip">Press any key · 点击开始</p>
+  </div>
+</div>
+
+<div id="game-wrap">
+  <canvas id="game"></canvas>
+
+  <!-- ============================== HUD ============================== -->
+  <div id="hud">
+
+    <!-- Top-left: bells, bank, miles, rep -->
+    <div class="hud-top">
+      <div class="stat bells"><b id="hud-bells">0</b><span class="ico">💰</span><i>Bells</i></div>
+      <div class="stat bank"><b id="hud-bank">0</b><span class="ico">🏦</span><i>Bank</i></div>
+      <div class="stat miles"><b id="hud-miles">0</b><span class="ico">✈</span><i>Nook Miles</i></div>
+      <div class="stat rep"><b id="hud-rep">⭐</b><span class="ico" id="hud-island-stars">☆☆☆☆☆</span><i id="hud-island-name">Island</i></div>
+    </div>
+
+    <!-- Top-right: weather, time, date, season -->
+    <div class="hud-top-right">
+      <div class="row"><span id="weather-ico">☀️</span><b id="hud-weather">Sunny</b></div>
+      <div class="row"><span>🕐</span><b id="hud-time">12:00</b></div>
+      <div class="row"><span>📅</span><b id="hud-date">Day 1 · Spring</b></div>
+    </div>
+
+    <!-- Wanted stars (GTA flavor) -->
+    <div class="wanted-stars" id="wanted-stars"></div>
+
+    <!-- Inventory hotbar (8 slots along the bottom) -->
+    <div class="hotbar" id="hotbar"></div>
+
+    <!-- Bottom hint -->
+    <div class="hud-bottom">
+      <div class="hint" id="hint">A 互动 · B 跑 · X 工具 · Y NookPhone · L 摇树/挖掘 · ZL 视角 · R-Action Wheel</div>
+    </div>
+
+    <!-- NookPhone action wheel -->
+    <div class="action-wheel" id="action-wheel">
+      <button data-action="phone" title="Y · NookPhone">📱</button>
+      <button data-action="map" title="M · Island Map">🗺</button>
+      <button data-action="inventory" title="I · Inventory">🎒</button>
+      <button data-action="island" title="Tab · Island Eval">⭐</button>
+      <button data-action="museum" title="J · Museum">🏛</button>
+      <button data-action="miles" title="N · Nook Miles+">✈</button>
+      <button data-action="npc" title="K · Villagers">🐾</button>
+      <button data-action="settings" title="Esc · Settings">⚙</button>
+    </div>
+
+    <!-- Dialogue (AC style paper card) -->
+    <div id="dialogue" class="dialogue hidden">
+      <div class="dlg-portrait" id="dlg-portrait">🦝</div>
+      <div class="dlg-body">
+        <h3 id="dlg-name">NPC</h3>
+        <p id="dlg-text">...</p>
+        <div id="dlg-choices"></div>
+      </div>
+      <button class="dlg-close" id="dlg-close">×</button>
+    </div>
+
+    <!-- Banner -->
+    <div id="banner" class="banner hidden"></div>
+
+    <!-- Toast host -->
+    <div id="toast-host"></div>
+
+    <!-- Generic modal -->
+    <div id="modal" class="modal hidden">
+      <div class="modal-inner" id="modal-inner">
+        <button class="modal-close" id="modal-close">×</button>
+        <h2 id="modal-title">Title</h2>
+        <div id="modal-body"></div>
+      </div>
+    </div>
+
+    <!-- Title screen -->
+    <div id="title" class="title hidden">
+      <div class="title-card">
+        <h1>M3 Crossing</h1>
+        <p class="tag">HD-2D · Octopath Engine · Switch-AC Scope</p>
+        <p class="muted small">v4.1 — Island Designer (terraforming) · Real depth, dynamic shadows, day-night, 20+ villagers, museum, K.K., Nook Miles+</p>
+        <div class="title-menu">
+          <button id="resume" class="btn-primary hidden">继续游戏</button>
+          <button id="new-game" class="btn-primary">新游戏</button>
+          <button id="load-game" class="btn-secondary hidden">继续存档</button>
+          <button id="how-to" class="btn-secondary">玩法说明</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="game.js"></script>
+</body>
+</html>
