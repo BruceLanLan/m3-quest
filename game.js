@@ -3804,21 +3804,12 @@ function render() {
 
       // 3. ROOF OVERHANG — a thin lit band on top of the building, brighter
       // The roof is drawn ABOVE the wall (offset upward) so the wall can show below
-      const roofOff = 12;  // bigger offset = more visible 3D step
+      const roofOff = 8;  // visible 3D step
       drawSprite(cell,
         pBase.sx - sz/2 * p.scale - roofOff * p.scale,
         pBase.sy - sz/2 * p.scale - extrude * p.scale - roofOff * p.scale - elev * ELEVATION_PX * p.scale,
         sz * p.scale, sz * p.scale,
         3, lit, 1.15, 1.10, 1.05, 1.0, glow);
-
-      // 3b. ROOF EAST EDGE — a thin lit strip showing the roof's east face
-      // (small parallelogram suggesting the roof has thickness)
-      const roofEdgeW = 4;
-      drawSprite(cell,
-        pBase.sx - sz/2 * p.scale - roofOff * p.scale + sz * p.scale - roofEdgeW,
-        pBase.sy - sz/2 * p.scale - extrude * p.scale - roofOff * p.scale - elev * ELEVATION_PX * p.scale,
-        roofEdgeW * p.scale, sz * p.scale,
-        3, lit, 0.95, 0.92, 0.88, 1.0, 0);  // slightly cooler (east gets less sun)
     }
   }
 
@@ -3915,13 +3906,6 @@ function render() {
     const wx = cam.x + (Math.random() - 0.5) * 30;
     const wy = cam.y + (Math.random() - 0.5) * 20;
     spawnParticle('leaf', wx, wy, {vy: 0.2, vx: (Math.random()-0.5)*0.5, life: 80});
-  }
-  // 5c. dust motes (volumetric atmosphere — visible sun beams, sunny only)
-  // These are small bright dots that drift slowly, suggesting air with light
-  if (timeOfDay(time.minutes) === 'day' && time.weather === 'sunny' && Math.random() < 0.4) {
-    const wx = cam.x + (Math.random() - 0.5) * 30;
-    const wy = cam.y + (Math.random() - 0.5) * 20;
-    spawnParticle('dust', wx, wy, {vy: -0.1, vx: (Math.random()-0.5)*0.15, life: 200});
   }
   // 6. flush
   gl.bufferSubData(gl.ARRAY_BUFFER, 0, vdata.subarray(0, vHead * FLOATS_PER_VERT));
