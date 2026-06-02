@@ -409,7 +409,15 @@ function dot(ctx, x, y, c, r=1) {
 // =====================================================================
 
 function buildTile(name) {
-  const W = 32, H = 32;
+  // Buildings use 32x48 (tall, 3D-feel). Terrain/props/items use 32x32.
+  // Characters use 64x64 (defined separately in buildCharSprite).
+  const isBuilding = name === 'house-mayor' || name === 'house-modern' || name === 'house-shack' ||
+                     name === 'shop' || name === 'bank' || name === 'museum' || name === 'pawn' ||
+                     name === 'tent' || name === 'warehouse' || name === 'tent-green' ||
+                     name === 'tower' || name === 'bridge-h' || name === 'bridge-v' ||
+                     name === 'sign' || name === 'nooks' || name === 'able' || name === 'kks' ||
+                     name === 'resident' || name === 'tent-2';
+  const W = 32, H = isBuilding ? 48 : 32;
   const cell = allocCell(name, W, H);
   if (!cell) return;
   drawOntoAtlas(cell, (g) => {
@@ -774,57 +782,67 @@ function buildTile(name) {
         dot(g, 12, 12, PAL.gold, 3);
         break;
       }
-      // --- building bases ---
-      // Buildings are drawn as 32x32 in this atlas but rendered tall on screen
-      // The base cell is 32x32; we draw the FULL building here (32x32) and it
-      // will be displayed with a height offset.
+      // === BUILDINGS (32x48 cell, 32x32 roof + 16x32 wall below) ===
+      // All building sprites are drawn into a 32x48 cell. The TOP 32x32 area is
+      // the roof (visible in axonometric view), the BOTTOM 16x32 is the wall face
+      // (visible on the south side as the "side of the building"). This gives true
+      // 3D extrusion look without 3D geometry.
       case 'house-mayor': {
-        rect(g, 0, 24, W, 8, PAL.grass);
-        rect(g, 4, 12, 24, 14, PAL.wall);
-        rect(g, 4, 24, 24, 2, PAL.wallD);
-        rect(g, 14, 18, 4, 8, PAL.door);
-        rect(g, 14, 18, 1, 8, '#3a2010');
-        rect(g, 6, 15, 4, 4, PAL.windowLit);
-        rect(g, 22, 15, 4, 4, PAL.windowLit);
-        rect(g, 2, 4, 28, 8, PAL.rM);
-        rect(g, 2, 4, 28, 1, '#5a1fb5');
-        rect(g, 4, 2, 24, 2, PAL.rM);
-        rect(g, 22, 0, 3, 4, PAL.stone);
-        rect(g, 16, 0, 1, 6, '#1c1917');
-        rect(g, 17, 1, 3, 2, PAL.rM);
+        // Wall face (bottom 16 rows): 0-15 unused / 16-31 wall / 32-47 grass at base
+        // y=0..15: top of building, no wall visible (covered by roof)
+        // y=16..31: wall face visible
+        // y=32..47: ground/grass strip at base
+        rect(g, 0, 0, W, 16, '#0c0a09');  // transparent top
+        rect(g, 4, 16, 24, 16, PAL.wall);  // wall
+        rect(g, 4, 28, 24, 4, PAL.wallD);  // wall shadow strip
+        rect(g, 14, 22, 4, 10, PAL.door);
+        rect(g, 14, 22, 1, 10, '#3a2010');
+        rect(g, 6, 19, 4, 4, PAL.windowLit);
+        rect(g, 22, 19, 4, 4, PAL.windowLit);
+        rect(g, 0, 32, W, 16, PAL.grass);  // grass base
+        // Roof (y=0..15)
+        rect(g, 2, 0, 28, 12, PAL.rM);
+        rect(g, 2, 0, 28, 1, '#5a1fb5');
+        rect(g, 4, -2, 24, 2, PAL.rM);
+        rect(g, 22, -4, 3, 4, PAL.stone);
+        rect(g, 16, -4, 1, 6, '#1c1917');
+        rect(g, 17, -3, 3, 2, PAL.rM);
         break;
       }
       case 'house-modern': {
-        rect(g, 0, 24, W, 8, PAL.grass);
-        rect(g, 4, 12, 24, 14, PAL.wallP);
-        rect(g, 4, 24, 24, 2, '#c8a8b8');
-        rect(g, 14, 18, 4, 8, PAL.door);
-        rect(g, 6, 15, 4, 4, PAL.window);
-        rect(g, 22, 15, 4, 4, PAL.window);
-        rect(g, 2, 6, 28, 6, PAL.rB);
-        rect(g, 4, 4, 24, 2, PAL.rB);
+        rect(g, 0, 0, W, 16, '#0c0a09');
+        rect(g, 4, 16, 24, 16, PAL.wallP);
+        rect(g, 4, 28, 24, 4, '#c8a8b8');
+        rect(g, 14, 22, 4, 10, PAL.door);
+        rect(g, 6, 19, 4, 4, PAL.window);
+        rect(g, 22, 19, 4, 4, PAL.window);
+        rect(g, 0, 32, W, 16, PAL.grass);
+        rect(g, 2, 4, 28, 8, PAL.rB);
+        rect(g, 4, 2, 24, 2, PAL.rB);
         break;
       }
       case 'house-shack': {
-        rect(g, 0, 24, W, 8, PAL.grass);
-        rect(g, 4, 14, 24, 12, PAL.wood);
-        rect(g, 4, 24, 24, 2, PAL.woodD);
-        rect(g, 14, 18, 4, 8, PAL.door);
-        rect(g, 6, 16, 3, 3, PAL.windowLit);
-        rect(g, 23, 16, 3, 3, PAL.windowLit);
-        rect(g, 2, 8, 28, 6, PAL.rR);
+        rect(g, 0, 0, W, 16, '#0c0a09');
+        rect(g, 4, 18, 24, 14, PAL.wood);
+        rect(g, 4, 28, 24, 4, PAL.woodD);
+        rect(g, 14, 22, 4, 10, PAL.door);
+        rect(g, 6, 20, 3, 3, PAL.windowLit);
+        rect(g, 23, 20, 3, 3, PAL.windowLit);
+        rect(g, 0, 32, W, 16, PAL.grass);
+        rect(g, 2, 8, 28, 8, PAL.rR);
         rect(g, 4, 6, 24, 2, PAL.rR);
         break;
       }
       case 'shop': {
-        rect(g, 0, 24, W, 8, PAL.grass);
-        rect(g, 4, 12, 24, 14, PAL.wall);
-        rect(g, 4, 24, 24, 2, PAL.wallD);
-        rect(g, 2, 14, 28, 3, PAL.rG);
-        for (let i=0; i<28; i+=4) rect(g, i, 14, 2, 3, PAL.wall);
-        rect(g, 14, 17, 4, 9, PAL.door);
-        rect(g, 6, 17, 4, 4, PAL.window);
-        rect(g, 22, 17, 4, 4, PAL.window);
+        rect(g, 0, 0, W, 16, '#0c0a09');
+        rect(g, 4, 16, 24, 16, PAL.wall);
+        rect(g, 4, 28, 24, 4, PAL.wallD);
+        rect(g, 2, 18, 28, 3, PAL.rG);
+        for (let i=0; i<28; i+=4) rect(g, i, 18, 2, 3, PAL.wall);
+        rect(g, 14, 21, 4, 11, PAL.door);
+        rect(g, 6, 21, 4, 4, PAL.window);
+        rect(g, 22, 21, 4, 4, PAL.window);
+        rect(g, 0, 32, W, 16, PAL.grass);
         rect(g, 2, 6, 28, 6, PAL.rG);
         rect(g, 4, 4, 24, 2, PAL.rG);
         rect(g, 12, 7, 8, 3, PAL.gold);
@@ -832,25 +850,27 @@ function buildTile(name) {
         break;
       }
       case 'bank': {
-        rect(g, 0, 24, W, 8, PAL.grass);
-        rect(g, 6, 10, 3, 16, PAL.wall);
-        rect(g, 13, 10, 3, 16, PAL.wall);
-        rect(g, 20, 10, 3, 16, PAL.wall);
+        rect(g, 0, 0, W, 16, '#0c0a09');
+        rect(g, 6, 14, 3, 18, PAL.wall);
+        rect(g, 13, 14, 3, 18, PAL.wall);
+        rect(g, 20, 14, 3, 18, PAL.wall);
+        rect(g, 0, 32, W, 16, PAL.grass);
         rect(g, 2, 4, 28, 6, PAL.rB);
         rect(g, 0, 2, W, 2, PAL.rB);
-        rect(g, 4, 24, 24, 2, PAL.stoneD);
+        rect(g, 4, 28, 24, 4, PAL.stoneD);
         rect(g, 8, 6, 16, 4, PAL.gold);
         rect(g, 12, 7, 8, 2, '#1c1917');
         break;
       }
       case 'museum': {
-        rect(g, 0, 24, W, 8, PAL.grass);
-        rect(g, 4, 10, 24, 16, PAL.wall);
-        rect(g, 4, 24, 24, 2, PAL.stoneD);
-        rect(g, 4, 10, 2, 16, PAL.wallD);
-        rect(g, 26, 10, 2, 16, PAL.wallD);
-        rect(g, 12, 12, 8, 14, PAL.door);
-        rect(g, 14, 14, 4, 4, PAL.window);
+        rect(g, 0, 0, W, 16, '#0c0a09');
+        rect(g, 4, 14, 24, 18, PAL.wall);
+        rect(g, 4, 28, 24, 4, PAL.stoneD);
+        rect(g, 4, 14, 2, 18, PAL.wallD);
+        rect(g, 26, 14, 2, 18, PAL.wallD);
+        rect(g, 12, 16, 8, 16, PAL.door);
+        rect(g, 14, 18, 4, 4, PAL.window);
+        rect(g, 0, 32, W, 16, PAL.grass);
         rect(g, 2, 4, 28, 6, PAL.stone);
         rect(g, 4, 2, 24, 2, PAL.stoneD);
         rect(g, 14, 0, 4, 4, PAL.stoneL);
@@ -859,12 +879,13 @@ function buildTile(name) {
         break;
       }
       case 'pawn': {
-        rect(g, 0, 24, W, 8, PAL.grass);
-        rect(g, 4, 12, 24, 14, PAL.wood);
-        rect(g, 4, 24, 24, 2, PAL.woodD);
-        rect(g, 14, 18, 4, 8, PAL.door);
-        rect(g, 6, 15, 3, 3, PAL.windowLit);
-        rect(g, 23, 15, 3, 3, PAL.windowLit);
+        rect(g, 0, 0, W, 16, '#0c0a09');
+        rect(g, 4, 16, 24, 16, PAL.wood);
+        rect(g, 4, 28, 24, 4, PAL.woodD);
+        rect(g, 14, 22, 4, 10, PAL.door);
+        rect(g, 6, 19, 3, 3, PAL.windowLit);
+        rect(g, 23, 19, 3, 3, PAL.windowLit);
+        rect(g, 0, 32, W, 16, PAL.grass);
         rect(g, 2, 6, 28, 6, PAL.rR);
         rect(g, 4, 4, 24, 2, PAL.rR);
         dot(g, 10, 5, PAL.gold, 2);
@@ -872,49 +893,115 @@ function buildTile(name) {
         dot(g, 22, 5, PAL.gold, 2);
         break;
       }
-      case 'tent': {
-        rect(g, 0, 24, W, 8, PAL.grass);
-        rect(g, 0, 24, W, 4, PAL.wall);
-        for (let i=0; i<28; i++) rect(g, 2+i, 24-(i/2)|0, 1, 1, PAL.fW);
-        for (let i=0; i<28; i++) rect(g, 2+i, 24-(i/2)|0, 1, 1, PAL.fW);
-        rect(g, 14, 20, 4, 8, PAL.ink);
-        rect(g, 16, 0, 1, 22, '#8b5a2b');
-        break;
-      }
-      case 'warehouse': {
-        rect(g, 0, 24, W, 8, PAL.grass);
-        rect(g, 2, 12, 28, 14, PAL.stone);
-        rect(g, 2, 24, 28, 2, PAL.stoneD);
-        rect(g, 4, 16, 24, 10, PAL.ink);
-        for (let i=0; i<3; i++) rect(g, 4, 17+i*3, 24, 1, '#3a3d44');
-        rect(g, 2, 8, 28, 4, PAL.stoneD);
-        break;
-      }
-      case 'tent-green': {
-        rect(g, 0, 24, W, 8, PAL.grass);
-        // M3-themed purple tent
-        rect(g, 4, 22, 24, 4, PAL.m3);
-        for (let i=0; i<22; i++) rect(g, 5+i, 22-(i/2)|0, 1, 1, PAL.m3L);
-        rect(g, 14, 18, 4, 8, PAL.ink);
-        rect(g, 16, 0, 1, 22, '#8b5a2b');
-        // M3 logo
-        rect(g, 14, 14, 4, 3, PAL.m3L);
-        break;
-      }
       case 'tower': {
-        rect(g, 0, 24, W, 8, PAL.grass);
-        rect(g, 10, 4, 12, 22, PAL.stone);
-        rect(g, 10, 4, 2, 22, PAL.stoneD);
+        rect(g, 0, 0, W, 16, '#0c0a09');
+        rect(g, 10, 4, 12, 28, PAL.stone);
+        rect(g, 10, 4, 2, 28, PAL.stoneD);
+        rect(g, 0, 32, W, 16, PAL.grass);
         rect(g, 8, 0, 16, 4, PAL.rM);
         rect(g, 8, 0, 16, 1, PAL.m3L);
         rect(g, 14, 12, 4, 6, PAL.windowLit);
         break;
       }
+      case 'nooks': {
+        // Nook's Cranny — green awning + bell sign
+        rect(g, 0, 0, W, 16, '#0c0a09');
+        rect(g, 4, 16, 24, 16, PAL.wood);
+        rect(g, 4, 28, 24, 4, PAL.woodD);
+        rect(g, 2, 18, 28, 3, PAL.rG);
+        for (let i=0; i<28; i+=4) rect(g, i, 18, 2, 3, PAL.wood);
+        rect(g, 14, 21, 4, 11, PAL.door);
+        rect(g, 6, 21, 4, 4, PAL.windowLit);
+        rect(g, 22, 21, 4, 4, PAL.windowLit);
+        rect(g, 0, 32, W, 16, PAL.grass);
+        rect(g, 2, 6, 28, 6, PAL.rG);
+        rect(g, 4, 4, 24, 2, PAL.rG);
+        // bell sign on top
+        rect(g, 10, 0, 12, 4, PAL.wall);
+        rect(g, 12, 1, 8, 3, PAL.gold);
+        rect(g, 14, 2, 4, 2, PAL.ink);
+        break;
+      }
+      case 'able': {
+        rect(g, 0, 0, W, 16, '#0c0a09');
+        rect(g, 4, 16, 24, 16, PAL.wallP);
+        rect(g, 4, 28, 24, 4, '#c8a8b8');
+        rect(g, 2, 18, 28, 3, PAL.pink || '#f7a8c0');
+        for (let i=0; i<28; i+=4) rect(g, i, 18, 2, 3, PAL.wallP);
+        rect(g, 14, 21, 4, 11, PAL.door);
+        rect(g, 6, 21, 4, 4, PAL.window);
+        rect(g, 22, 21, 4, 4, PAL.window);
+        rect(g, 0, 32, W, 16, PAL.grass);
+        rect(g, 2, 6, 28, 6, '#ec4899');
+        rect(g, 4, 4, 24, 2, '#ec4899');
+        rect(g, 10, 0, 12, 4, PAL.wall);
+        rect(g, 12, 1, 8, 3, '#ec4899');
+        break;
+      }
+      case 'kks': {
+        // K.K. Slider stage
+        rect(g, 0, 0, W, 16, '#0c0a09');
+        rect(g, 4, 16, 24, 16, '#3a1a4a');
+        rect(g, 4, 28, 24, 4, '#2a0a3a');
+        rect(g, 0, 32, W, 16, PAL.grass);
+        rect(g, 2, 6, 28, 6, PAL.m3);
+        rect(g, 4, 4, 24, 2, PAL.m3);
+        // music note
+        rect(g, 14, 8, 4, 4, '#fff');
+        rect(g, 14, 7, 1, 5, '#fff');
+        break;
+      }
+      case 'resident': {
+        rect(g, 0, 0, W, 16, '#0c0a09');
+        rect(g, 4, 16, 24, 16, PAL.wood);
+        rect(g, 4, 28, 24, 4, PAL.woodD);
+        rect(g, 0, 32, W, 16, PAL.grass);
+        rect(g, 2, 6, 28, 6, PAL.stone);
+        rect(g, 4, 4, 24, 2, PAL.stoneD);
+        break;
+      }
+      case 'tent': {
+        rect(g, 0, 0, W, 16, '#0c0a09');
+        rect(g, 0, 16, W, 16, PAL.wall);
+        for (let i=0; i<28; i++) rect(g, 2+i, 32-(i/2)|0, 1, 1, PAL.fW);
+        rect(g, 14, 20, 4, 12, PAL.ink);
+        rect(g, 16, 0, 1, 32, '#8b5a2b');
+        rect(g, 0, 32, W, 16, PAL.grass);
+        break;
+      }
+      case 'tent-green': {
+        rect(g, 0, 0, W, 16, '#0c0a09');
+        rect(g, 4, 16, 24, 16, PAL.m3);
+        for (let i=0; i<22; i++) rect(g, 5+i, 32-(i/2)|0, 1, 1, PAL.m3L);
+        rect(g, 14, 20, 4, 12, PAL.ink);
+        rect(g, 16, 0, 1, 32, '#8b5a2b');
+        rect(g, 14, 14, 4, 3, PAL.m3L);
+        rect(g, 0, 32, W, 16, PAL.grass);
+        break;
+      }
+      case 'tent-2': {
+        rect(g, 0, 0, W, 16, '#0c0a09');
+        rect(g, 4, 16, 24, 16, '#5a4a3a');
+        rect(g, 14, 20, 4, 12, PAL.door);
+        rect(g, 0, 32, W, 16, PAL.grass);
+        rect(g, 2, 8, 28, 8, '#7c5a3a');
+        break;
+      }
+      case 'warehouse': {
+        rect(g, 0, 0, W, 16, '#0c0a09');
+        rect(g, 2, 16, 28, 16, PAL.stone);
+        rect(g, 2, 28, 28, 4, PAL.stoneD);
+        rect(g, 4, 20, 24, 12, PAL.ink);
+        for (let i=0; i<3; i++) rect(g, 4, 21+i*3, 24, 1, '#3a3d44');
+        rect(g, 2, 8, 28, 8, PAL.stoneD);
+        rect(g, 0, 32, W, 16, PAL.grass);
+        break;
+      }
       case 'bridge-h': {
         rect(g, 0, 0, W, H, PAL.water);
-        rect(g, 0, 8, W, 16, PAL.wood);
-        rect(g, 0, 22, W, 2, PAL.woodD);
-        for (let i=0; i<8; i++) rect(g, i*4, 8, 1, 16, PAL.woodD);
+        rect(g, 0, 12, W, 16, PAL.wood);
+        rect(g, 0, 26, W, 2, PAL.woodD);
+        for (let i=0; i<8; i++) rect(g, i*4, 12, 1, 16, PAL.woodD);
         break;
       }
       case 'bridge-v': {
@@ -3758,7 +3845,7 @@ function render() {
     }
   }
 
-  // 3c. buildings (3D-extruded with sun-angle shadows) — layer 3
+  // 3c. buildings (3D-extruded, 32x48 cells with wall face visible below roof)
   // Sun direction in screen space (projected): for HD-2D, sun comes from upper-left
   // so shadows fall to lower-right. shadowDir = (1, 1) in (sx, sy) units.
   const sunSx = 6, sunSy = 4;  // shadow offset in pixels (low sun = long shadow)
@@ -3771,10 +3858,10 @@ function render() {
       const elev = world.elevation[y][x] || 0;
       // Ground-level base: project at the actual building base (slight elevation)
       const pBase = project(x + 0.5, y + 0.5, 0);
-      // Top-level: project at the top of the building (high wz)
-      const extrude = 48;  // building height in screen pixels
-      const pTop = project(x + 0.5, y + 0.5, extrude);
-      // SIZES:
+      // 3D extrusion height — how many pixels the building pokes up
+      // 32x48 cell is 1.5x the normal TILE_H, so we render at TILE_W × 1.5*TILE_H
+      const extrude = 32;  // additional height in screen pixels above the tile
+      const cellH = cell.h;  // 48 for buildings, 32 for others
       const sz = TILE;
       const lit = dc.sunLevel;
       const glow = (b === 'house-mayor' || b === 'shop' || b === 'nooks' || b === 'bank' || b === 'pawn' || b === 'museum' || b === 'tower' || b === 'kks' || b === 'resident') ? 1 : 0;
@@ -3782,34 +3869,23 @@ function render() {
       // 1. Cast shadow on ground (skewed to the south-east for sun-from-north-west)
       const shadowCell = cells['shadow'];
       if (shadowCell) {
-        // Skew shadow: a parallelogram. Use the wall face for shape.
-        // We draw a stretched sprite, displaced toward south-east, semi-transparent.
         drawSprite(shadowCell,
           pBase.sx - sz/2 * p.scale + sunSx,
           pBase.sy - sz/2 * p.scale + sunSy + 8,
           sz * p.scale * 1.4, sz * p.scale * 0.6,
-          3, 0.35, 0.3);  // dark, low alpha
+          3, 0.35, 0.3);
       }
 
-      // 2. SIDE FACE (the wall facing the camera) — tinted darker for depth
-      // The wall quad is drawn with a vertical stretch and an offset to look like
-      // a 3D extrusion. The wall face shows below the roof overhang, giving the
-      // building visible "depth" in axonometric view.
-      const wallTint = 0.65;  // side face quite a bit darker (no direct sun on side)
+      // 2. The whole 32x48 building sprite is drawn at the tile center, raised by extrude
+      // tall: 1.5x the normal TILE_H = 48 screen pixels
+      // y_offset: shifts sprite up by (extrude + elev)
+      const totalH = sz * 1.5;  // 96 px tall on screen for 32x48 cell
+      const sy = pBase.sy - totalH / 2 * p.scale - extrude * p.scale - elev * ELEVATION_PX * p.scale;
+      const sx = pBase.sx - sz / 2 * p.scale;
       drawSprite(cell,
-        pBase.sx - sz/2 * p.scale,
-        pBase.sy - sz/2 * p.scale - extrude * p.scale - elev * ELEVATION_PX * p.scale,
-        sz * p.scale, sz * p.scale,
-        3, lit, wallTint, 0.85, 0.95, 1.0, glow);
-
-      // 3. ROOF OVERHANG — a thin lit band on top of the building, brighter
-      // The roof is drawn ABOVE the wall (offset upward) so the wall can show below
-      const roofOff = 8;  // visible 3D step
-      drawSprite(cell,
-        pBase.sx - sz/2 * p.scale - roofOff * p.scale,
-        pBase.sy - sz/2 * p.scale - extrude * p.scale - roofOff * p.scale - elev * ELEVATION_PX * p.scale,
-        sz * p.scale, sz * p.scale,
-        3, lit, 1.15, 1.10, 1.05, 1.0, glow);
+        sx, sy,
+        sz * p.scale, totalH * p.scale,
+        3, lit, 1, 1, 1, 1, glow);
     }
   }
 
