@@ -4,6 +4,28 @@
 
 ---
 
+## v5.0 — 2026-06-02
+
+**HD-2D Octopath Tier Rebuild — buildings 3D, world rendering fixed**
+
+**New:**
+- 19 建筑 sprite 重画为 32x48 cell (1.5x TILE_H)
+- 建筑 cell 分层：透明 top 16px + 屋顶 + 墙身 + 草基底
+- Building extrude 32px，1.5x 渲染高度
+- 树 + 装饰 + 角色 + 建筑 + 庄稼 + 物品 全部支持 elevation 偏移
+
+**Fixed:**
+- v4.2 → v5.0 render 崩溃：`p is not defined` ReferenceError
+  - tree sprite render line 引用未定义的 `p.scale`，实际应为 `pTree.scale`
+  - decoration line 同样的 `p.scale` → 改 `pD.scale`
+  - building shadow line 同样的 `p.scale` → 改 `pBase.scale`
+  - building main sprite line 4 处 `p.scale` → 改 `pBase.scale`
+  - bug 修好后游戏可以正常渲染整个世界
+
+**Files changed:** game.js +5 / -10
+
+---
+
 ## v4.2 — 2026-06-02
 
 **HD-2D Painterly Pass（视觉重做）**

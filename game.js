@@ -3816,9 +3816,9 @@ function render() {
       const pTree = project(x + 0.5, y + 0.5, 0);
       const sz = TILE;
       drawSprite(cell,
-        pTree.sx - sz/2 * p.scale + windDx * p.scale,
-        pTree.sy - sz/2 * p.scale + windDy * p.scale - elev * ELEVATION_PX * p.scale,
-        sz * p.scale, sz * p.scale, 1, lit, 1, 1, 1, 1, 0);
+        pTree.sx - sz/2 * pTree.scale + windDx * pTree.scale,
+        pTree.sy - sz/2 * pTree.scale + windDy * pTree.scale - elev * ELEVATION_PX * pTree.scale,
+        sz * pTree.scale, sz * pTree.scale, 1, lit, 1, 1, 1, 1, 0);
     }
   }
 
@@ -3839,9 +3839,9 @@ function render() {
       const pD = project(x + 0.5, y + 0.5, 0);
       const sz = TILE;
       drawSprite(cell,
-        pD.sx - sz/2 * p.scale + dWindDx * p.scale,
-        pD.sy - sz/2 * p.scale - elev * ELEVATION_PX * p.scale,
-        sz * p.scale, sz * p.scale, 1, dc.sunLevel, 1, 1, 1, 1, 0);
+        pD.sx - sz/2 * pD.scale + dWindDx * pD.scale,
+        pD.sy - sz/2 * pD.scale - elev * ELEVATION_PX * pD.scale,
+        sz * pD.scale, sz * pD.scale, 1, dc.sunLevel, 1, 1, 1, 1, 0);
     }
   }
 
@@ -3870,9 +3870,9 @@ function render() {
       const shadowCell = cells['shadow'];
       if (shadowCell) {
         drawSprite(shadowCell,
-          pBase.sx - sz/2 * p.scale + sunSx,
-          pBase.sy - sz/2 * p.scale + sunSy + 8,
-          sz * p.scale * 1.4, sz * p.scale * 0.6,
+          pBase.sx - sz/2 * pBase.scale + sunSx,
+          pBase.sy - sz/2 * pBase.scale + sunSy + 8,
+          sz * pBase.scale * 1.4, sz * pBase.scale * 0.6,
           3, 0.35, 0.3);
       }
 
@@ -3880,11 +3880,11 @@ function render() {
       // tall: 1.5x the normal TILE_H = 48 screen pixels
       // y_offset: shifts sprite up by (extrude + elev)
       const totalH = sz * 1.5;  // 96 px tall on screen for 32x48 cell
-      const sy = pBase.sy - totalH / 2 * p.scale - extrude * p.scale - elev * ELEVATION_PX * p.scale;
-      const sx = pBase.sx - sz / 2 * p.scale;
+      const sy = pBase.sy - totalH / 2 * pBase.scale - extrude * pBase.scale - elev * ELEVATION_PX * pBase.scale;
+      const sx = pBase.sx - sz / 2 * pBase.scale;
       drawSprite(cell,
         sx, sy,
-        sz * p.scale, totalH * p.scale,
+        sz * pBase.scale, totalH * pBase.scale,
         3, lit, 1, 1, 1, 1, glow);
     }
   }
