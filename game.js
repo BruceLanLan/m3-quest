@@ -369,7 +369,7 @@ const PAL = {
   // ground
   grass:    '#7cbe3a', grassD:   '#5fa226', grassDark:'#3e6f1c', grassV:  '#a3d65a',
   path:     '#e7c87f', pathD:    '#c39a4f',
-  sand:     '#f6e2a4', sandD:    '#d8c079',
+  sand:     '#f6e2a4', sandD:    '#d8c079', sandL:    '#fef3c7',
   water:    '#4fa8d8', waterD:   '#3a82b3', waterL:   '#7fcce4',
   cliff:    '#8b6d4a', cliffD:   '#5a4a2a', cliffL:   '#a8a078',
   // objects
@@ -448,15 +448,43 @@ function buildTile(name) {
     switch (name) {
       // --- grass variants ---
       case 'grass': {
+        // Painterly grass: 4-color base + clusters of small blade tufts
         rect(g, 0, 0, W, H, PAL.grass);
-        for (let i=0; i<24; i++) px(g, Math.random()*W|0, Math.random()*H|0, PAL.grassD);
-        for (let i=0; i<10; i++) px(g, Math.random()*W|0, Math.random()*H|0, PAL.grassV);
+        // 3 light spots (sun highlights) - subtle
+        for (let i=0; i<3; i++) {
+          const x = (Math.random()*W)|0, y = (Math.random()*H)|0;
+          px(g, x, y, PAL.grassV);
+        }
+        // 16 darker spots (shadow)
+        for (let i=0; i<16; i++) px(g, (Math.random()*W)|0, (Math.random()*H)|0, PAL.grassD);
+        // 12 grass tufts (3-blade clusters, painterly)
+        for (let i=0; i<12; i++) {
+          const x = (Math.random()*(W-2))|0 + 1, y = (Math.random()*(H-3))|0 + 1;
+          rect(g, x, y, 1, 1, PAL.leafD);
+          px(g, x+1, y-1, PAL.leaf);
+          px(g, x-1, y-1, PAL.leaf);
+        }
+        // 6 darker tufts for variety
+        for (let i=0; i<6; i++) {
+          const x = (Math.random()*(W-2))|0 + 1, y = (Math.random()*(H-3))|0 + 1;
+          rect(g, x, y, 1, 1, PAL.grassDark);
+        }
+        // 4 small flowers (yellow + white pixel) — adds visual interest
+        for (let i=0; i<4; i++) {
+          const x = (Math.random()*(W-1))|0, y = (Math.random()*(H-1))|0;
+          px(g, x, y, Math.random() < 0.5 ? PAL.fY : PAL.fW);
+        }
         break;
       }
       case 'grass-dark': {
         rect(g, 0, 0, W, H, PAL.grass);
-        for (let i=0; i<14; i++) px(g, Math.random()*W|0, Math.random()*H|0, PAL.grassD);
-        for (let i=0; i<8; i++) px(g, Math.random()*W|0, Math.random()*H|0, PAL.grassDark);
+        for (let i=0; i<14; i++) px(g, (Math.random()*W)|0, (Math.random()*H)|0, PAL.grassD);
+        for (let i=0; i<8; i++) px(g, (Math.random()*W)|0, (Math.random()*H)|0, PAL.grassDark);
+        for (let i=0; i<6; i++) {
+          const x = (Math.random()*(W-2))|0 + 1, y = (Math.random()*(H-3))|0 + 1;
+          rect(g, x, y, 1, 1, PAL.grassDark);
+          px(g, x+1, y-1, PAL.leafD);
+        }
         break;
       }
       case 'tall-grass': {
@@ -562,22 +590,43 @@ function buildTile(name) {
       // --- sand ---
       case 'sand': {
         rect(g, 0, 0, W, H, PAL.sand);
-        for (let i=0; i<8; i++) px(g, Math.random()*W|0, Math.random()*H|0, PAL.sandD);
+        // 3-color variation: light, mid, dark
+        for (let i=0; i<10; i++) px(g, (Math.random()*W)|0, (Math.random()*H)|0, PAL.sandD);
+        for (let i=0; i<4; i++) px(g, (Math.random()*W)|0, (Math.random()*H)|0, PAL.sandL || '#fef3c7');
+        // small shell + driftwood dots
+        for (let i=0; i<3; i++) {
+          const x = (Math.random()*(W-2))|0, y = (Math.random()*(H-1))|0;
+          px(g, x, y, '#fff7c0');
+        }
+        // wave foam at edges (if top is water)
+        for (let i=0; i<4; i++) px(g, 2 + i*8, 0, PAL.waterL || '#bae6fd');
         break;
       }
       // --- water (animated via 3 frames) ---
       case 'water-0': case 'water-1': case 'water-2': {
         const f = parseInt(name.split('-')[1]);
-        rect(g, 0, 0, W, H, PAL.water);
-        // shimmer dashes that move with frame
+        // 3-layer water: deep base + mid tone + animated shimmer
+        rect(g, 0, 0, W, H, PAL.waterD);   // deep blue base
+        rect(g, 0, 4, W, H-8, PAL.water);  // mid blue (most of the tile)
+        // animated shimmer dashes that move with frame
         const patterns = [
-          [[0,8,10,1],[14,18,14,1],[4,26,12,1],[0,4,6,1],[16,12,8,1]],
-          [[4,12,8,1],[18,22,10,1],[2,28,4,1],[12,4,6,1],[8,16,12,1]],
-          [[2,4,6,1],[10,18,10,1],[20,28,8,1],[6,12,4,1],[0,22,14,1]],
+          [[0,8,10,1],[14,18,14,1],[4,26,12,1],[0,4,6,1],[16,12,8,1],[22,4,4,1],[8,20,8,1]],
+          [[4,12,8,1],[18,22,10,1],[2,28,4,1],[12,4,6,1],[8,16,12,1],[0,24,6,1],[20,8,4,1]],
+          [[2,4,6,1],[10,18,10,1],[20,28,8,1],[6,12,4,1],[0,22,14,1],[14,6,4,1],[24,18,6,1]],
         ];
         for (const [x,y,w,h] of patterns[f]) {
-          rect(g, x, y, w, h, y % 8 === 0 ? PAL.waterD : PAL.waterL);
+          rect(g, x, y, w, h, y % 8 === 0 ? PAL.waterL : PAL.waterD);
         }
+        // foam dots at top of tile (where water meets shore)
+        px(g, 2, 0, PAL.waterL);
+        px(g, 6, 0, PAL.waterL);
+        px(g, 12, 0, PAL.waterL);
+        px(g, 18, 0, PAL.waterL);
+        px(g, 24, 0, PAL.waterL);
+        // reflective spots
+        dot(g, 5, 10, PAL.waterL, 1);
+        dot(g, 22, 6, PAL.waterL, 1);
+        dot(g, 14, 24, PAL.waterL, 1);
         break;
       }
       // --- cliff (raised tile) ---
@@ -602,16 +651,23 @@ function buildTile(name) {
       }
       // --- trees ---
       case 'tree': {
-        // trunk
+        // trunk with bark texture
         rect(g, 14, 20, 4, 10, PAL.wood);
+        rect(g, 15, 20, 1, 10, '#5a3a1a');  // bark shadow
         rect(g, 12, 28, 8, 4, PAL.woodD);
-        // foliage (3 layers)
-        rect(g, 4, 6, 24, 18, PAL.leafD);
-        rect(g, 6, 4, 20, 18, PAL.leaf);
-        rect(g, 8, 2, 16, 16, PAL.leafL);
-        rect(g, 10, 4, 12, 12, PAL.leafD);
-        // highlight
-        for (let i=0; i<6; i++) px(g, 10+i, 4+(i%2), PAL.leafL);
+        // multi-layer foliage for painterly depth (4 layers, sun from top-right)
+        rect(g, 2, 8, 28, 18, PAL.leafD);    // outer dark layer (shadow)
+        rect(g, 4, 6, 24, 18, PAL.leafD);    // shadow layer
+        rect(g, 6, 4, 20, 18, PAL.leaf);     // mid-tone body
+        rect(g, 8, 2, 16, 16, PAL.leafL);    // lit body
+        rect(g, 10, 4, 12, 12, PAL.leaf);    // top inner
+        // sun highlight (top-right corner is brightest)
+        for (let i=0; i<8; i++) px(g, 20-i, 3+(i%2), PAL.leafL);
+        for (let i=0; i<4; i++) px(g, 22-i, 4, '#d4f5b0');
+        // sun-from-above highlight strips
+        for (let i=0; i<3; i++) px(g, 14+i*2, 6, PAL.leafL);
+        // dark dapple spots (painterly dots)
+        for (let i=0; i<8; i++) px(g, 5+((i*5)%22), 6+((i*3)%14), PAL.leafD);
         break;
       }
       case 'tree-pine': {
@@ -626,16 +682,28 @@ function buildTile(name) {
       }
       case 'tree-fruit': {
         rect(g, 14, 20, 4, 10, PAL.wood);
+        rect(g, 15, 20, 1, 10, '#5a3a1a');
         rect(g, 12, 28, 8, 4, PAL.woodD);
+        rect(g, 2, 8, 28, 18, PAL.leafD);
         rect(g, 4, 6, 24, 18, PAL.leafD);
         rect(g, 6, 4, 20, 18, PAL.leaf);
         rect(g, 8, 2, 16, 16, PAL.leafL);
-        rect(g, 10, 4, 12, 12, PAL.leafD);
+        rect(g, 10, 4, 12, 12, PAL.leaf);
+        for (let i=0; i<8; i++) px(g, 20-i, 3+(i%2), PAL.leafL);
+        for (let i=0; i<4; i++) px(g, 22-i, 4, '#d4f5b0');
+        // fruit (apples) - more visible
         dot(g, 10, 8, PAL.fR, 2);
         dot(g, 18, 6, PAL.fR, 2);
         dot(g, 22, 12, PAL.fR, 2);
         dot(g, 14, 14, PAL.fR, 2);
         dot(g, 8, 10, PAL.fR, 2);
+        dot(g, 24, 8, PAL.fR, 2);
+        dot(g, 6, 14, PAL.fR, 2);
+        // apple highlights
+        px(g, 10, 7, '#fda4af');
+        px(g, 18, 5, '#fda4af');
+        px(g, 22, 11, '#fda4af');
+        px(g, 14, 13, '#fda4af');
         break;
       }
       case 'tree-bamboo': {
@@ -664,22 +732,39 @@ function buildTile(name) {
         break;
       }
       case 'bush': {
+        rect(g, 2, 16, 28, 12, PAL.leafD);
         rect(g, 4, 14, 24, 14, PAL.leafD);
         rect(g, 6, 10, 20, 14, PAL.leaf);
         rect(g, 8, 8, 16, 12, PAL.leafL);
-        rect(g, 10, 6, 12, 10, PAL.leafD);
+        rect(g, 10, 6, 12, 10, PAL.leaf);
+        // sun highlights
         for (let i=0; i<6; i++) px(g, 8+i*2, 12, PAL.leafL);
+        for (let i=0; i<4; i++) px(g, 14-i, 8, '#d4f5b0');
+        // dapple spots
+        for (let i=0; i<4; i++) px(g, 6+((i*7)%22), 16+((i*4)%10), PAL.leafD);
         break;
       }
       case 'flower-r': case 'flower-y': case 'flower-p':
       case 'flower-w': case 'flower-o': {
         const colors = {'flower-r':PAL.fR, 'flower-y':PAL.fY, 'flower-p':PAL.fP, 'flower-w':PAL.fW, 'flower-o':PAL.fO};
+        const lightC = {'flower-r':'#fda4af', 'flower-y':'#fef9c3', 'flower-p':'#fbcfe8', 'flower-w':'#fff', 'flower-o':'#fed7aa'};
+        const c = colors[name], lc = lightC[name];
         rect(g, 0, 0, W, H, PAL.grass);
         for (let i=0; i<5; i++) {
           const x = 4 + i*5;
-          rect(g, x, 16, 1, 12, PAL.grassD);
-          dot(g, x, 14, colors[name], 2);
+          rect(g, x, 18, 1, 10, PAL.grassD);
+          // 4-petal flower (cross shape) instead of dot
+          rect(g, x-1, 14, 3, 1, c);
+          rect(g, x-1, 16, 3, 1, c);
+          rect(g, x, 13, 1, 3, c);
+          rect(g, x, 17, 1, 3, c);
+          // center
+          px(g, x, 15, lc);
+          // leaf
+          px(g, x+1, 19, PAL.leafD);
         }
+        // small grass tufts around
+        for (let i=0; i<6; i++) px(g, (Math.random()*W)|0, (Math.random()*H)|0, PAL.grassD);
         break;
       }
       // --- rocks ---

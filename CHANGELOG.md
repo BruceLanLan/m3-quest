@@ -4,6 +4,26 @@
 
 ---
 
+## v5.1.3 — 2026-06-02
+
+**Painterly tile textures (grass tufts, water foam, tree depth, sand variation)**
+
+**New:**
+- Grass: 12 tuft clusters (3-blade each) + 6 darker tufts + 4 small wild flowers per tile
+- Water: 3-layer depth (deep base + mid tone + animated shimmer), 5 foam dots at shore, 3 reflective spots
+- Sand: 3-color variation (light/mid/dark), 3 shell-like dots, foam at water edge
+- Tree: 5-layer foliage with sun-from-top-right highlights (light pixels) + 8 dapple spots
+- Tree-fruit: 7 apples (up from 5) + 4 apple highlights
+- Bush: 4-layer with sun highlight pixels + 4 dapple spots
+- Flowers: 4-petal cross shape (was 2px dot) with light center + 6 grass tufts around
+- New palette: sandL = #fef3c7 (light sand)
+
+**Visual change:** Ground tiles now look like living terrain, not flat color. Water has depth, trees have volume, sand has variation.
+
+**Files changed:** game.js +85 / -22
+
+---
+
 ## v5.1.2 — 2026-06-02
 
 **Improved character sprites (eyes, hands, mouth, ears, body shading, 4-frame walk)**
