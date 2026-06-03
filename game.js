@@ -3017,7 +3017,29 @@ function interactBuilding(id) {
   else if (id === 'kks') openKKS();
   else if (id === 'camp') openCamp();
   else if (id === 'sign') showToast('欢迎来到 M3 Island!');
+  else if (id === 'nooks' && keys['r']) robNooks();
+  else if (id === 'nooks') openNooks();
   else showToast(`进入 ${id}`);
+}
+
+// GTA: Rob Nook's Cranny — massive wanted boost, big bell reward, police swarm
+function robNooks() {
+  if (player._lastRobTime && (Date.now() / 1000 - player._lastRobTime) < 60) {
+    showToast('⏳ 60秒后才能再抢一次');
+    return;
+  }
+  player._lastRobTime = Date.now() / 1000;
+  const stolen = 1000 + (player.wanted * 500);
+  player.bells += stolen;
+  // boost wanted by 3 (max 5)
+  for (let i = 0; i < 3; i++) bumpWanted();
+  showToast('💰 抢了 Nook 商店 $' + stolen + ' Bells！WANTED +3！🚔 警员正在追你！', 5000);
+  // scare villagers
+  for (const v of villagers) {
+    if (v.ref.id !== 'dog') {
+      v.knockedT = 5;  // 5 seconds of fear
+    }
+  }
 }
 
 // =====================================================================

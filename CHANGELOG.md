@@ -4,6 +4,21 @@
 
 ---
 
+## v5.1.4 — 2026-06-02
+
+**GTA: Rob Nook's Cranny (steal bells, trigger 3-star wanted, villagers flee)**
+
+**New:**
+- Hold R + interact with Nook's Cranny → steal 1000 + 500*wanted bells
+- +3 wanted stars (5 max)
+- 60s cooldown per robbery
+- All non-dog villagers scared for 5 seconds (pause wander)
+- Dog sheriff immediately chases (wanted >= 3)
+
+**Files changed:** game.js +23 / -0
+
+---
+
 ## v5.1.3 — 2026-06-02
 
 **Painterly tile textures (grass tufts, water foam, tree depth, sand variation)**
