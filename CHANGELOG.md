@@ -4,6 +4,24 @@
 
 ---
 
+## v5.1 — 2026-06-02
+
+**Painterly Color Grading Pass (visual depth from flat to Octopath)**
+
+**New:**
+- Fragment shader color grading pipeline:
+  - S-curve contrast +18% + smoothstep (Octopath-style deep blacks)
+  - Split-toning: cool blue shadows (0.92, 0.96, 1.10), warm orange highlights (1.12, 1.05, 0.92)
+  - Saturation -12% (less kiddy, more painterly)
+  - Vignette darkening at screen corners
+- Added v_ndcX varying to vertex shader for vignette
+
+**Visual change:** Game now looks more painterly, less kid-game. Trees, water, grass, buildings all share the same Octopath-like color treatment.
+
+**Files changed:** game.js +22 / -0
+
+---
+
 ## v5.0 — 2026-06-02
 
 **HD-2D Octopath Tier Rebuild — buildings 3D, world rendering fixed**

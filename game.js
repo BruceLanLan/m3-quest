@@ -78,6 +78,7 @@ const VS = `
   varying vec3 v_tint;
   varying float v_glow;
   varying float v_ndcY;
+  varying float v_ndcX;
   void main() {
     gl_Position = vec4(a_pos, 0.0, 1.0);
     v_uv = a_uv;
@@ -87,6 +88,7 @@ const VS = `
     v_tint = a_tint;
     v_glow = a_glow;
     v_ndcY = a_pos.y;  // pass through NDC y for atmospheric haze
+    v_ndcX = a_pos.x;  // pass through NDC x for vignette
   }
 `;
 
@@ -99,6 +101,7 @@ const FS = `
   varying vec3 v_tint;
   varying float v_glow;
   varying float v_ndcY;
+  varying float v_ndcX;
 
   uniform sampler2D u_tex;
   uniform float u_time;
@@ -162,6 +165,27 @@ const FS = `
         c.rgb += vec3(0.25, 0.18, 0.08) * (lum - 0.6) * 2.0;
       }
     }
+
+    // === PAINTERLY COLOR GRADING (Octopath Mobile style) ===
+    // The standard AC palette is too saturated / too bright. This pipeline
+    // crushes blacks, lifts highlights warm, and shifts shadows cool.
+    // 1. S-curve contrast: darken midtones, brighten highlights
+    c.rgb = (c.rgb - 0.5) * 1.18 + 0.5;  // contrast +18%
+    c.rgb = c.rgb * c.rgb * (3.0 - 2.0 * c.rgb);  // smoothstep S-curve
+    c.rgb = mix(c.rgb, c.rgb * 1.05, 0.5);  // restore some mid
+    // 2. Warm shadows / cool highlights (split-toning like Octopath)
+    float lum = dot(c.rgb, vec3(0.299, 0.587, 0.114));
+    vec3 shadowTint = vec3(0.92, 0.96, 1.10);  // cool blue in shadows
+    vec3 highlightTint = vec3(1.12, 1.05, 0.92);  // warm orange in highlights
+    float shadowMask = 1.0 - smoothstep(0.0, 0.5, lum);
+    float highlightMask = smoothstep(0.5, 0.95, lum);
+    c.rgb *= mix(vec3(1.0), shadowTint, shadowMask * 0.35);
+    c.rgb *= mix(vec3(1.0), highlightTint, highlightMask * 0.30);
+    // 3. Saturation -10% (less kiddy, more painterly)
+    c.rgb = mix(vec3(lum), c.rgb, 0.88);
+    // 4. Vignette (subtle darken at screen corners)
+    float vig = 1.0 - 0.18 * pow(abs(v_ndcX), 2.0) - 0.18 * pow(abs(v_ndcY), 2.0);
+    c.rgb *= clamp(vig, 0.7, 1.0);
 
     gl_FragColor = vec4(c.rgb, c.a * v_alpha);
   }
