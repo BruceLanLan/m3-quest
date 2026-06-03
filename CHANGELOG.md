@@ -4,6 +4,23 @@
 
 ---
 
+## v5.1.2 — 2026-06-02
+
+**Improved character sprites (eyes, hands, mouth, ears, body shading, 4-frame walk)**
+
+**New:**
+- All 20 species + player re-rendered with bigger eyes (5x5 with iris + pupil + highlight)
+- Added mouth, ears with ear-inner color, hands visible on arms
+- Body shading on right side (sun direction)
+- Head top highlight
+- Arms swing when walking
+- Legs step with 4-frame walk cycle
+- Shirt buttons (2 white dots)
+
+**Files changed:** game.js +84 / -44
+
+---
+
 ## v5.1 — 2026-06-02
 
 **Painterly Color Grading Pass (visual depth from flat to Octopath)**

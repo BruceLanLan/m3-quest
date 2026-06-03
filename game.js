@@ -1221,126 +1221,180 @@ function charPalette(species) {
   return base[species] || base.cat;
 }
 
-// core char drawer. dir = 'down' | 'up' | 'left' | 'right'; frame = 0|1
+// core char drawer. dir = 'down' | 'up' | 'left' | 'right'; frame = 0|1|2|3
+// v5.1.2: improved proportions, 4-frame walk cycle, eyes with highlights,
+//        hand details, arm swing on walk, body shading.
 function drawChar(g, W, H, S, dir, frame) {
-  // 64x64 frame, character occupies center 32x48
-  // 0..15 padding
-  // 16..47 head (32 tall)
-  // 48..63 body+legs (16 tall)
-  // simple silhouette + per-species details + dir variants
+  // 64x64 frame, character occupies 24 wide x 56 tall (centered)
+  // y=4..60 char; x=20..44 char
+  // frame animation: 0-3 cycle (idle, step-L, idle, step-R)
+  const legFrame = frame & 1;  // 0 or 1 — left leg forward
+  const armFrame = frame & 1;  // 0 or 1 — right arm forward
+  const isStepping = (frame === 1 || frame === 3);  // mid-step
+  // body shadow (darker, larger)
+  rect(g, 14, 60, 36, 4, 'rgba(0,0,0,0.28)');
 
-  // body shadow
-  rect(g, 16, 60, 32, 3, PAL.shadow);
+  // legs (slightly thicker, with pant cuff)
+  const legOffX = legFrame === 0 ? -1 : 1;
+  // back leg
+  rect(g, 24, 48, 7, 12, S.furB);
+  rect(g, 24+legOffX, 48, 7, 12, S.furB);
+  // front leg
+  rect(g, 33, 48, 7, 12, S.furB);
+  rect(g, 33-legOffX, 48, 7, 12, S.furB);
+  // shoes (slightly larger)
+  rect(g, 22, 58, 9, 3, PAL.ink);
+  rect(g, 33, 58, 9, 3, PAL.ink);
 
-  // legs
-  const legOff = frame === 0 ? 0 : 2;
-  rect(g, 22, 50, 6, 10, S.furB);
-  rect(g, 36, 50, 6, 10, S.furB);
-  rect(g, 22+legOff, 50, 6, 10, S.furA);
-  rect(g, 36-legOff, 50, 6, 10, S.furA);
-  // shoes
-  rect(g, 22, 58, 6, 3, PAL.ink);
-  rect(g, 36, 58, 6, 3, PAL.ink);
+  // body (slightly tapered)
+  rect(g, 18, 36, 28, 16, S.furA);
+  // body shading on the right side
+  rect(g, 40, 36, 6, 16, S.furB);
+  // collar / shirt detail
+  rect(g, 26, 38, 12, 8, S.accent);
+  rect(g, 26, 38, 12, 1, 'rgba(0,0,0,0.2)');
+  // shirt buttons
+  rect(g, 31, 39, 2, 2, 'rgba(255,255,255,0.3)');
+  rect(g, 31, 43, 2, 2, 'rgba(255,255,255,0.3)');
 
-  // body
-  rect(g, 18, 38, 28, 14, S.furA);
-  rect(g, 18, 50, 28, 2, S.furB);
-  // accent (apron/shirt detail)
-  rect(g, 26, 42, 12, 6, S.accent);
-  rect(g, 28, 44, 8, 2, 'rgba(0,0,0,0.15)');
-
-  // arms
+  // arms (swing with walk)
+  const armSwing = isStepping ? (armFrame === 0 ? -2 : 2) : 0;
   if (dir === 'left' || dir === 'right') {
-    rect(g, 12, 40, 6, 14, S.furA);
-    rect(g, 46, 40, 6, 14, S.furA);
+    // profile: front arm + back arm
+    // back arm
+    rect(g, 14, 40 - armSwing, 5, 12, S.furB);
+    rect(g, 14, 50 - armSwing, 5, 3, S.skin);  // hand
+    // front arm
+    rect(g, 45, 40 + armSwing, 5, 12, S.furA);
+    rect(g, 45, 50 + armSwing, 5, 3, S.skin);  // hand
   } else {
-    rect(g, 16, 40, 4, 14, S.furA);
-    rect(g, 44, 40, 4, 14, S.furA);
+    // back-facing
+    rect(g, 16, 40 - armSwing, 4, 12, S.furB);
+    rect(g, 16, 50 - armSwing, 4, 3, S.skin);
+    // front arm
+    rect(g, 44, 40 + armSwing, 4, 12, S.furA);
+    rect(g, 44, 50 + armSwing, 4, 3, S.skin);
   }
 
-  // head (round, 24x24 in upper area)
-  rect(g, 20, 16, 24, 22, S.furA);
-  rect(g, 21, 15, 22, 1, S.furA);
-  rect(g, 22, 14, 20, 1, S.furA);
+  // head (bigger, more round — 28x24)
+  rect(g, 18, 14, 28, 24, S.furA);
+  // head highlight (top)
+  rect(g, 19, 14, 26, 1, 'rgba(255,255,255,0.18)');
+  // head right-side shading
+  rect(g, 42, 14, 4, 24, S.furB);
   // chin
-  rect(g, 24, 36, 16, 4, S.skin);
-  // head bottom shadow
-  rect(g, 20, 36, 24, 2, S.furB);
+  rect(g, 24, 34, 16, 4, S.skin);
+  // chin shadow
+  rect(g, 18, 36, 28, 2, S.furB);
+  // ears
+  if (S.hat !== 'antlers' && S.hat !== 'horns') {
+    rect(g, 16, 16, 4, 6, S.furA);
+    rect(g, 44, 16, 4, 6, S.furA);
+    rect(g, 17, 17, 2, 3, S.earIn);
+    rect(g, 45, 17, 2, 3, S.earIn);
+  }
 
   // species-specific head/face details
   if (S.hat === 'sheriff') {
-    // dog sheriff: badge
-    rect(g, 30, 44, 4, 4, PAL.gold);
-    rect(g, 31, 45, 2, 2, '#1c1917');
+    // dog sheriff: badge on chest
+    rect(g, 30, 42, 4, 4, PAL.gold);
+    rect(g, 31, 43, 2, 2, '#1c1917');
   }
   if (S.hat === 'bandana') {
     // wolf bandana
-    rect(g, 22, 24, 20, 3, PAL.red);
+    rect(g, 22, 22, 20, 3, PAL.red);
   }
   if (S.hat === 'top') {
     // elephant top hat
-    rect(g, 26, 6, 12, 10, '#1c1917');
-    rect(g, 24, 14, 16, 3, '#1c1917');
-    rect(g, 30, 8, 4, 6, PAL.red);
+    rect(g, 26, 4, 12, 10, '#1c1917');
+    rect(g, 24, 12, 16, 3, '#1c1917');
+    rect(g, 30, 6, 4, 6, PAL.red);
   }
   if (S.hat === 'antlers') {
     // deer antlers
-    rect(g, 16, 10, 4, 8, PAL.wood);
-    rect(g, 44, 10, 4, 8, PAL.wood);
-    rect(g, 12, 8, 4, 4, PAL.wood);
-    rect(g, 48, 8, 4, 4, PAL.wood);
+    rect(g, 16, 8, 4, 8, PAL.wood);
+    rect(g, 44, 8, 4, 8, PAL.wood);
+    rect(g, 12, 6, 4, 4, PAL.wood);
+    rect(g, 48, 6, 4, 4, PAL.wood);
   }
   if (S.hat === 'mane') {
     // lion mane (round)
-    rect(g, 18, 14, 28, 24, S.furB);
-    rect(g, 20, 16, 24, 22, S.furA);
+    rect(g, 16, 12, 32, 26, S.furB);
+    rect(g, 18, 14, 28, 22, S.furA);
   }
   if (S.hat === 'comb') {
     // chicken comb
-    rect(g, 28, 10, 8, 4, PAL.chickenR);
-    rect(g, 30, 8, 2, 2, PAL.chickenR);
-    rect(g, 34, 8, 2, 2, PAL.chickenR);
+    rect(g, 28, 8, 8, 4, PAL.chickenR);
+    rect(g, 30, 6, 2, 2, PAL.chickenR);
+    rect(g, 34, 6, 2, 2, PAL.chickenR);
   }
   if (S.hat === 'horns') {
     // goat horns
-    rect(g, 22, 12, 4, 4, '#1c1917');
-    rect(g, 38, 12, 4, 4, '#1c1917');
+    rect(g, 22, 10, 4, 4, '#1c1917');
+    rect(g, 38, 10, 4, 4, '#1c1917');
   }
   if (S.hat === 'beak') {
     // eagle beak
-    rect(g, 30, 24, 4, 4, PAL.gold);
+    rect(g, 30, 22, 4, 4, PAL.gold);
   }
   if (S.hat === 'mask') {
-    // player M3 mask
-    rect(g, 22, 24, 20, 4, '#1c1917');
-    rect(g, 24, 22, 4, 2, '#1c1917');
-    rect(g, 36, 22, 4, 2, '#1c1917');
+    // player M3 mask (full face mask with M3 logo)
+    rect(g, 22, 22, 20, 6, '#1c1917');
+    rect(g, 24, 20, 4, 2, '#1c1917');
+    rect(g, 36, 20, 4, 2, '#1c1917');
+    // M3 logo on mask
+    rect(g, 30, 24, 4, 2, PAL.m3);
   }
   if (S.hat === 'leaf') {
     // raccoon leaf
-    rect(g, 30, 8, 4, 4, PAL.leafL);
+    rect(g, 30, 6, 4, 4, PAL.leafL);
   }
 
-  // face features (eyes, nose) by direction
+  // face features (eyes, nose, mouth) by direction
   if (dir === 'down' || dir === 'right' || dir === 'left') {
-    // eyes
     if (dir === 'down') {
-      rect(g, 26, 22, 4, 4, PAL.white);
-      rect(g, 34, 22, 4, 4, PAL.white);
-      rect(g, 27, 23, 2, 2, PAL.ink);
-      rect(g, 35, 23, 2, 2, PAL.ink);
+      // bigger eyes (5x5)
+      rect(g, 25, 21, 5, 5, PAL.white);
+      rect(g, 34, 21, 5, 5, PAL.white);
+      // iris
+      rect(g, 26, 22, 3, 3, S.accent);
+      rect(g, 35, 22, 3, 3, S.accent);
+      // pupil
+      rect(g, 27, 23, 1, 1, PAL.ink);
+      rect(g, 36, 23, 1, 1, PAL.ink);
+      // eye highlight
+      rect(g, 26, 22, 1, 1, PAL.white);
+      rect(g, 35, 22, 1, 1, PAL.white);
+      // nose
+      rect(g, 30, 28, 4, 2, S.furB);
+      // mouth (small smile)
+      rect(g, 29, 31, 6, 1, S.furB);
     } else if (dir === 'left') {
-      rect(g, 24, 22, 6, 4, PAL.white);
-      rect(g, 25, 23, 2, 2, PAL.ink);
-    } else {
-      rect(g, 34, 22, 6, 4, PAL.white);
-      rect(g, 37, 23, 2, 2, PAL.ink);
+      // profile: one eye visible
+      rect(g, 22, 21, 6, 5, PAL.white);
+      rect(g, 24, 22, 3, 3, S.accent);
+      rect(g, 25, 23, 1, 1, PAL.ink);
+      rect(g, 24, 22, 1, 1, PAL.white);
+      // nose profile
+      rect(g, 18, 26, 3, 2, S.furB);
+      // mouth profile
+      rect(g, 22, 30, 4, 1, S.furB);
+    } else {  // right
+      rect(g, 36, 21, 6, 5, PAL.white);
+      rect(g, 38, 22, 3, 3, S.accent);
+      rect(g, 40, 23, 1, 1, PAL.ink);
+      rect(g, 38, 22, 1, 1, PAL.white);
+      // nose profile
+      rect(g, 43, 26, 3, 2, S.furB);
+      // mouth profile
+      rect(g, 38, 30, 4, 1, S.furB);
     }
-    // nose
-    rect(g, 30, 28, 4, 2, S.furB);
   } else {
-    // up: back of head, no face
+    // up: back of head
     rect(g, 28, 22, 8, 4, S.furB);
+    // back ear details
+    rect(g, 20, 16, 2, 4, S.furB);
+    rect(g, 42, 16, 2, 4, S.furB);
   }
 }
 
@@ -1627,8 +1681,10 @@ function buildAllSprites() {
                    'horse', 'chicken', 'koala', 'goat', 'octopus', 'eagle'];
   const dirs = ['down', 'up', 'left', 'right'];
   species.forEach(sp => dirs.forEach(d => {
-    buildChar(`${sp}-${d}-0`);
-    buildChar(`${sp}-${d}-1`);
+    // 4-frame walk cycle (0=idle, 1=step-L, 2=idle, 3=step-R)
+    for (let f = 0; f < 4; f++) {
+      buildChar(`${sp}-${d}-${f}`);
+    }
   }));
 
   // icons
@@ -2439,8 +2495,8 @@ function updatePlayer(dt) {
       }
     }
     // animate
-    player.frameT += dt * (player.running ? 12 : 6);
-    if (player.frameT > 0.5) { player.frameT = 0; player.frame = 1 - player.frame; }
+    player.frameT += dt * (player.running ? 16 : 8);
+    if (player.frameT > 0.18) { player.frameT = 0; player.frame = (player.frame + 1) % 4; }
     // bob
     player.bobT += dt * 8;
     // GTA: sprint into villager = hit-and-run, increases wanted level
@@ -3742,8 +3798,8 @@ function updateVillagers(dt) {
     v.wy = clamp(v.wy, 8, 56);
     v.x = v.wx * TILE + TILE/2;
     v.y = v.wy * TILE + TILE/2;
-    v.frameT += dt * 4;
-    if (v.frameT > 0.5) { v.frameT = 0; v.frame = 1 - v.frame; }
+    v.frameT += dt * 6;
+    if (v.frameT > 0.2) { v.frameT = 0; v.frame = (v.frame + 1) % 4; }
   }
 }
 
