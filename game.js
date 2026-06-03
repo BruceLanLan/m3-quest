@@ -2380,6 +2380,11 @@ function isWalkable(x, y) {
 }
 
 function updatePlayer(dt) {
+  // wanted-cooldown countdown
+  if (player._ramCooldown !== undefined && player._ramCooldown > 0) {
+    player._ramCooldown -= dt;
+    if (player._ramCooldown < 0) player._ramCooldown = 0;
+  }
   // determine direction from input
   let dx = 0, dy = 0;
   if (keys['w'] || keys['arrowup'])    { dy -= 1; player.dir = 'up'; }
@@ -2396,11 +2401,43 @@ function updatePlayer(dt) {
     // collision: try x, then y separately for sliding
     if (isWalkable(Math.floor(nx), Math.floor(player.wy))) player.wx = nx;
     if (isWalkable(Math.floor(player.wx), Math.floor(ny))) player.wy = ny;
+    // GTA: sprinting INTO a building tile = ram, bumps wanted
+    if (player.running) {
+      const tx = (player.wx + dx * 0.5) | 0;
+      const ty = (player.wy + dy * 0.5) | 0;
+      if (inBounds(tx, ty) && world.buildings[ty] && world.buildings[ty][tx]) {
+        if (player._ramCooldown === undefined || player._ramCooldown <= 0) {
+          player._ramCooldown = 2;
+          bumpWanted();
+          showToast('💢 撞到建筑！WANTED +1');
+          if (player.bells >= 100) player.bells -= 100;
+        }
+      }
+    }
     // animate
     player.frameT += dt * (player.running ? 12 : 6);
     if (player.frameT > 0.5) { player.frameT = 0; player.frame = 1 - player.frame; }
     // bob
     player.bobT += dt * 8;
+    // GTA: sprint into villager = hit-and-run, increases wanted level
+    if (player.running) {
+      for (const v of villagers) {
+        const dd = dist(v.wx, v.wy, player.wx, player.wy);
+        if (dd < 0.6 && v.cooldownHit === undefined) {
+          v.cooldownHit = 1.5;  // seconds before can hit again
+          // push villager away (knockback)
+          const ang = Math.atan2(v.wy - player.wy, v.wx - player.wx);
+          v.wx += Math.cos(ang) * 1.2;
+          v.wy += Math.sin(ang) * 1.2;
+          // villager is now "knocked" - pauses wander for 2s
+          v.knockedT = 2;
+          bumpWanted();
+          showToast('💥 撞到 ' + (v.ref.name || v.ref.id) + '！WANTED +1');
+          // small bell fine
+          if (player.bells >= 50) player.bells -= 50;
+        }
+      }
+    }
   } else {
     player.frame = 0;
   }
@@ -3623,6 +3660,19 @@ function loadGame() {
 
 function updateVillagers(dt) {
   for (const v of villagers) {
+    // hit-cooldown countdown
+    if (v.cooldownHit !== undefined) {
+      v.cooldownHit -= dt;
+      if (v.cooldownHit <= 0) delete v.cooldownHit;
+    }
+    // knocked timer (pause wander)
+    if (v.knockedT && v.knockedT > 0) {
+      v.knockedT -= dt;
+      v.frame = 0;  // idle
+      v.x = v.wx * TILE + TILE/2;
+      v.y = v.wy * TILE + TILE/2;
+      continue;  // skip wander while knocked
+    }
     v.wanderT -= dt;
     if (v.wanderT <= 0) {
       // pick random direction
@@ -3636,6 +3686,33 @@ function updateVillagers(dt) {
       else v.dir = 'up';
       v.wanderT = 2 + Math.random() * 4;
     }
+    // GTA-style: if wanted >= 3, the SPECIFIC species=dog (sheriff hat) chases the player
+    if (player.wanted >= 3 && v.ref.id === 'dog') {
+      const dx = player.wx - v.wx;
+      const dy = player.wy - v.wy;
+      const d = Math.sqrt(dx*dx + dy*dy);
+      if (d > 0.3) {
+        v.wx += (dx/d) * 0.4;  // chase
+        v.wy += (dy/d) * 0.4;
+        if (Math.abs(dx) > Math.abs(dy)) v.dir = dx > 0 ? 'right' : 'left';
+        else v.dir = dy > 0 ? 'down' : 'up';
+      } else if (d < 0.7 && v.cooldownArrest === undefined) {
+        // catch player
+        v.cooldownArrest = 3;
+        // arrest! reset wanted, fine 500 bells
+        const fine = 500 * player.wanted;
+        if (player.bells >= fine) player.bells -= fine; else player.bells = 0;
+        player.wanted = 0;
+        // teleport player home
+        player.wx = 32.5; player.wy = 32.5;
+        showToast('🚔 被捕！罚款 ' + fine + ' Bells，押回广场');
+      }
+    }
+    // arrest cooldown
+    if (v.cooldownArrest !== undefined) {
+      v.cooldownArrest -= dt;
+      if (v.cooldownArrest <= 0) delete v.cooldownArrest;
+    }
     // bounds
     v.wx = clamp(v.wx, 8, 56);
     v.wy = clamp(v.wy, 8, 56);
@@ -3645,6 +3722,8 @@ function updateVillagers(dt) {
     if (v.frameT > 0.5) { v.frameT = 0; v.frame = 1 - v.frame; }
   }
 }
+
+// (ram detection is inline in updatePlayer — no separate helper needed)
 
 // =====================================================================
 // SECTION 4 · RENDERING

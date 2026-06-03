@@ -8,11 +8,19 @@
 
 **HD-2D Octopath Tier Rebuild — buildings 3D, world rendering fixed**
 
-**New:**
+**New (step 1):**
 - 19 建筑 sprite 重画为 32x48 cell (1.5x TILE_H)
 - 建筑 cell 分层：透明 top 16px + 屋顶 + 墙身 + 草基底
 - Building extrude 32px，1.5x 渲染高度
 - 树 + 装饰 + 角色 + 建筑 + 庄稼 + 物品 全部支持 elevation 偏移
+
+**New (step 3 — GTA 元素):**
+- 玩家 sprint (B 键) 撞村民 → knockback 推开 1.2 tile + 玩家被罚款 50 bells + wanted +1
+- 玩家 sprint 撞建筑 → wanted +1 + 罚款 100 bells（冷却 2 秒）
+- 警员 AI：当 wanted ≥ 3，dog species（戴 sheriff hat 的警员）会主动追玩家
+- 警员接触玩家 → 罚款 500 × wanted、押回广场、wanted 清零（冷却 3 秒）
+- 撞到的村民有 2 秒 knockback 冷却，期间不游走
+- GTA 元素完整：5 星 wanted 等级系统、警员存在、可被逮捕
 
 **Fixed:**
 - v4.2 → v5.0 render 崩溃：`p is not defined` ReferenceError
@@ -22,7 +30,7 @@
   - building main sprite line 4 处 `p.scale` → 改 `pBase.scale`
   - bug 修好后游戏可以正常渲染整个世界
 
-**Files changed:** game.js +5 / -10
+**Files changed:** game.js +94 / -5
 
 ---
 
