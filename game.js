@@ -2755,7 +2755,7 @@ function useItem() {
   if (id === 'rod') { tryFish(); return; }
   if (id === 'net') { tryCatchBug(); return; }
   if (id === 'watering') { tryWater(); return; }
-  if (id === 'slingshot') { showToast('🎈 砰！打中一个气球！'); addMiles(10); return; }
+  if (id === 'slingshot') { trySlingshot(); return; }
   if (id.startsWith('seed-') || id === 'fruit-apple') { tryPlant(id); return; }
   if (id === 'fruit-apple' || id === 'fruit-orange' || id === 'fruit-peach' || id === 'fruit-cherry') {
     showToast('吃了一个水果 (体力满满)');
@@ -2780,6 +2780,32 @@ function tryCutTree() {
         return;
       }
     }
+  }
+}
+
+function trySlingshot() {
+  // GTA weapon — shoot at a villager in front of you
+  const px = player.wx, py = player.wy;
+  const dx = (player.dir === 'right' ? 1 : player.dir === 'left' ? -1 : 0);
+  const dy = (player.dir === 'down' ? 1 : player.dir === 'up' ? -1 : 0);
+  if (dx === 0 && dy === 0) { showToast('🎈 朝一个方向瞄准再射'); return; }
+  // find a villager in the line of fire (within 3 tiles)
+  let target = null;
+  for (const v of villagers) {
+    if (v.ref.id === 'dog') continue;  // can't shoot sheriff
+    const vx = v.wx - px, vy = v.wy - py;
+    if (vx*vx + vy*vy > 9) continue;  // 3 tiles max
+    // check if roughly in dir
+    const dot = vx*dx + vy*dy;
+    if (dot > 0.5) { target = v; break; }
+  }
+  if (target) {
+    bumpWanted();
+    target.knockedT = 3;
+    showToast('🎯 砰！打中 ' + (target.ref.name || target.ref.id) + '！WANTED +1');
+    addMiles(2);
+  } else {
+    showToast('🎈 啪！没打中');
   }
 }
 
@@ -4308,6 +4334,9 @@ function boot() {
   if (Object.keys(player.bag).length === 0) {
     addToBag('shovel', 1);
     addToBag('rod', 1);
+    addToBag('slingshot', 1);
+    addToBag('axe', 1);
+    addToBag('net', 1);
     addToBag('fruit-apple', 5);
     addToBag('branch', 10);
     addToBag('stone', 5);

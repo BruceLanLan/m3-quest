@@ -4,6 +4,21 @@
 
 ---
 
+## v5.1.5 — 2026-06-02
+
+**GTA: Slingshot weapon (shoot villagers, +wanted)**
+
+**New:**
+- Slingshot now shoots in player's facing direction
+- Hits a villager within 3 tiles in the line of fire
+- Target villager knocked for 3 seconds, wanted +1, +2 Nook Miles
+- Sheriff (dog) is immune to slingshots
+- Starting inventory now includes slingshot, axe, net (was just shovel + rod)
+
+**Files changed:** game.js +28 / -1
+
+---
+
 ## v5.1.4 — 2026-06-02
 
 **GTA: Rob Nook's Cranny (steal bells, trigger 3-star wanted, villagers flee)**
