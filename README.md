@@ -133,8 +133,13 @@ Y-offset 跟随 elevation：cliff 阶梯每升一级抬高 32px，自动画南�
 | v1 | Three.js GTA 版（`.bak/`） | 弃用 |
 | v3 | Canvas 2D flat-HD-2D（`.bak-v3/`） | 弃用 |
 | v4.0 | WebGL HD-2D 引擎 + Switch AC 主体系统 | ✅ 已完成 |
-| **v4.1** | **Island Designer（terraforming）** | ✅ 已完成 |
-| v5.0 | 地形编辑延伸（ramp / 分级斜坡 / 树苗生长） + Reacts | 📋 规划中 |
+| v4.1 | Island Designer（terraforming） | ✅ 已完成 |
+| v4.2 | HD-2D painterly pass（树风动、太阳方向阴影、大气 haze） | ✅ 已完成 |
+| v4.3 | 真 3D 建筑凸出（屋顶偏移 + 阴影投射） | ✅ 已完成（回滚过 1 次） |
+| **v5.0 step 1** | **建筑 32x48 cell + 3D 墙身 + 修 `p is not defined` 蓝屏 bug** | ✅ **已完成** |
+| **v5.0 step 3** | **GTA 元素：撞人 +1 wanted、撞建筑 +1 wanted、警员 AI 追捕逮捕** | ✅ **已完成** |
+| v5.0 step 2 | 角色 8 帧 walk + 4 帧 idle 动画 | 📋 规划中 |
+| v5.0 step 4 | 真景深 + 8 方向阳光 + bloom | 📋 规划中 |
 | v5.5 | 自定义设计画板（64×64 pixel editor） | 📋 规划中 |
 | v6.0 | 季节性事件系统（樱花节 / 赏月 / 万圣节） + 营火 | 📋 规划中 |
 | v7.0 | 多人 / Dream Address 占位 + 存档版本兼容 | 📋 规划中 |
