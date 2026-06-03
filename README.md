@@ -140,6 +140,13 @@ Y-offset 跟随 elevation：cliff 阶梯每升一级抬高 32px，自动画南�
 | **v5.0 step 3** | **GTA 元素：撞人 +1 wanted、撞建筑 +1 wanted、警员 AI 追捕逮捕** | ✅ **已完成** |
 | v5.0 step 2 | 角色 8 帧 walk + 4 帧 idle 动画 | 📋 规划中 |
 | v5.0 step 4 | 真景深 + 8 方向阳光 + bloom | 📋 规划中 |
+| **v5.1** | **Painterly color grading（S-curve + split-toning + vignette）** | ✅ **已完成** |
+| **v5.1.2** | **角色重画：眼睛 5x5 + iris/pupil/highlight + 嘴 + 耳 + 手 + 4 帧 walk + arm swing** | ✅ **已完成** |
+| **v5.1.3** | **Painterly tile textures：草地草丛簇 / 水 3 层 foam / 树 5 层 / 4 瓣花 / 沙变化** | ✅ **已完成** |
+| **v5.1.4** | **GTA 抢劫 Nook 商店（R + A 抢 1000-3000 bells + 3 wanted + 村民恐慌 5s）** | ✅ **已完成** |
+| **v5.1.5** | **GTA 弹弓武器（朝方向射村民，wanted +1）** | ✅ **已完成** |
+| v5.2 | 真景深 + bloom | 📋 规划中 |
+| v5.3 | 武器（更多：剑、棒球棒）+ 警车 | 📋 规划中 |
 | v5.5 | 自定义设计画板（64×64 pixel editor） | 📋 规划中 |
 | v6.0 | 季节性事件系统（樱花节 / 赏月 / 万圣节） + 营火 | 📋 规划中 |
 | v7.0 | 多人 / Dream Address 占位 + 存档版本兼容 | 📋 规划中 |
